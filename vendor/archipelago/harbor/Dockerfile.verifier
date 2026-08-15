@@ -1,0 +1,28 @@
+# The separate verifier container for a Harbor task. Built once and shared: a
+# task's own tests/Dockerfile is `FROM this` + `COPY . /tests/`, so per-task
+# grading config lands beside the runner without shipping it 480 times.
+#
+#   docker build -t archipelago-harbor-verifier:latest -f harbor/Dockerfile.verifier .
+FROM python:3.13-slim
+
+# libreoffice + poppler back the runner's spreadsheet/PDF grading surface.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl libreoffice poppler-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+# Harbor copies artifacts to absolute paths; the reserved log dirs must exist
+# first or the artifact copy fails.
+RUN mkdir -p /logs/agent /logs/verifier /logs/artifacts /logs/world
+
+# Dependency layer before the source so per-task rebuilds stay cached.
+COPY grading/pyproject.toml grading/uv.lock /app/grading/
+RUN cd /app/grading \
+ && UV_PYTHON="$(command -v python3)" uv sync --frozen --no-install-project
+
+COPY grading/ /app/grading/
+COPY harbor/grade/ /tests/
+RUN chmod +x /tests/test.sh
+
+ENV GRADING_PROJECT=/app/grading

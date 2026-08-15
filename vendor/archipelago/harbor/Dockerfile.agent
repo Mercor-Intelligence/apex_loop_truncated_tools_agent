@@ -1,0 +1,58 @@
+# The MAIN container a Harbor agent runs in. It holds no task data and no world
+# state — every tool call goes to the world sidecar over MCP — so one prebuilt
+# image serves every task and tasks reference it via `[environment] docker_image`.
+#
+# Deliberately generic: it ships the stock CLI agents and a python/node toolchain,
+# nothing task- or vendor-specific, so a dataset built on it stays portable and
+# any Harbor agent can run against it.
+#
+#   docker build -t archipelago-harbor-agent:latest -f harbor/Dockerfile.agent .
+FROM python:3.13-slim
+
+# The baseline Harbor's ~30 installable agents assume when they install themselves
+# into this container: curl + ca-certificates for their shell installers, git and
+# unzip for the ones that clone or unpack, procps because claude-code shells out
+# to `ps` to reap process trees.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      curl ca-certificates git unzip procps gnupg file \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG NODE_MAJOR=22
+RUN install -m 0755 -d /etc/apt/keyrings \
+ && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+      -o /etc/apt/keyrings/nodesource.asc \
+ && echo "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+      > /etc/apt/sources.list.d/nodesource.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/* \
+ && node --version && npm --version
+
+RUN mkdir -p /etc/opencode \
+ && printf '{"autoupdate":false}' > /etc/opencode/opencode.json
+ENV DISABLE_AUTOUPDATER=1 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+
+# Install claude-code's arch-matched platform package directly: the wrapper
+# package resolves its binary at runtime, which races under fan-out.
+ARG OPENCODE_VERSION=1.17.15
+ARG CLAUDE_CODE_VERSION=2.1.204
+RUN CC_PLAT="$(dpkg --print-architecture)" \
+ && case "$CC_PLAT" in \
+      amd64) CC_PLAT=linux-x64;; \
+      arm64) CC_PLAT=linux-arm64;; \
+      *) echo "unsupported arch: $CC_PLAT" >&2; exit 1;; \
+    esac \
+ && npm install -g --foreground-scripts \
+      "opencode-ai@${OPENCODE_VERSION}" \
+      "@anthropic-ai/claude-code-$CC_PLAT@${CLAUDE_CODE_VERSION}" \
+ && CC_ELF="$(find /usr/lib/node_modules/@anthropic-ai/claude-code-$CC_PLAT -type f \
+      -exec file {} ';' | awk -F: '/ELF.*executable/ {print $1; exit}')" \
+ && test -n "$CC_ELF" && ln -sf "$CC_ELF" /usr/bin/claude \
+ && opencode --version && claude --version \
+ && file -L /usr/bin/claude | grep -q "ELF.*executable"
+
+# uv is present for agents that provision a project at run time (the archipelago
+# agent of record uploads its runner here rather than being baked in, so this
+# image stays generic and any Harbor agent can use it).
+RUN pip install --no-cache-dir uv

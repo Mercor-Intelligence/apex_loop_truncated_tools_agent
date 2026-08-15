@@ -1,0 +1,49 @@
+[project]
+name = "mercor-mcp-shared"
+version = "0.1.0"
+description = "Shared framework for building MCP servers"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=3.2.0",
+    "loguru",
+    "asyncer",
+    "pydantic>=2.0",
+    "click>=8.0.0",
+    "jinja2>=3.0.0",
+    "pyyaml>=6.0",
+    "titlecase>=2.4",
+    "mcp-auth",
+    "mcp-middleware",
+    "mcp-cache",
+    "mcp-schema",
+    "data-ingestion",
+    "ruamel-yaml>=0.19.1",
+]
+
+[project.optional-dependencies]
+database = [
+    "sqlalchemy[asyncio]>=2.0",
+    "alembic>=1.13.0",
+    "aiosqlite>=0.19.0",
+    "greenlet>=3.0",
+    "pandas>=2.0.0",
+]
+rest = [
+    "fastapi>=0.121.2",
+    "uvicorn>=0.38.0",
+]
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcp_schema*"]
+
+[tool.uv.sources]
+mcp-auth = { path = "packages/mcp_auth" }
+mcp-middleware = { path = "packages/mcp_middleware" }
+mcp-cache = { path = "packages/mcp_cache" }
+mcp-schema = { path = "packages/mcp_schema" }
+data-ingestion = { path = "packages/data_ingestion" }
