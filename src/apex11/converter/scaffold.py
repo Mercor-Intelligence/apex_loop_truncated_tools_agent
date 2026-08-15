@@ -55,6 +55,7 @@ def _run_task(prefix: str, tag: str, harbor_version: str) -> str:
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+BUNDLE_ROOT="$(cd "$ROOT/../.." && pwd)"
 TASK="${{1:-}}"
 [ -n "$TASK" ] || {{ echo "usage: run_task.sh <task-dir-name>" >&2; exit 2; }}
 shift || true
@@ -84,6 +85,25 @@ MODEL="${{MODEL:-$(cfg agent_model)}}"
 AGENT="${{AGENT:-$(cfg agent)}}"
 export GRADING_MODEL="${{GRADING_MODEL:-$(cfg judge_model)}}"
 
+ENV_ARGS=()
+ENV_FILE="$BUNDLE_ROOT/.env"
+if [[ -f "$ENV_FILE" ]]; then
+    ENV_ARGS+=(--env-file "$ENV_FILE")
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${{line#"${{line%%[![:space:]]*}}"}}"
+        [[ -z "$line" || "${{line:0:1}}" == "#" ]] && continue
+        line="${{line#export }}"
+        key="${{line%%=*}}"
+        key="${{key%"${{key##*[![:space:]]}}"}}"
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {{
+            echo "invalid key in $ENV_FILE: $key" >&2
+            exit 2
+        }}
+        printf -v template '${{%s}}' "$key"
+        ENV_ARGS+=(--agent-env "$key=$template" --verifier-env "$key=$template")
+    done < "$ENV_FILE"
+fi
+
 set -- -a "$AGENT" "$@"
 
 # --no-delete keeps containers and logs after the trial; harbor's delete path
@@ -91,6 +111,7 @@ set -- -a "$AGENT" "$@"
 exec "${{RUNNER[@]}}" run -p "$TASK_DIR" \\
     -m "$MODEL" -e docker -y \\
     -o "${{OUTPUT_DIR:-$ROOT/jobs}}" \\
+    "${{ENV_ARGS[@]}}" \\
     --no-delete "$@"
 """
 

@@ -9,9 +9,17 @@ Install [Docker](https://docs.docker.com/get-started/get-docker/) and
 git clone --recurse-submodules https://github.com/Mercor-Intelligence/apex-agents-1.1.git
 cd apex-agents-1.1
 uv sync
-./scripts/prepare_from_hf.sh
+uv run hf download mercor/apex-agents-v1.1 \
+  --repo-type dataset \
+  --local-dir .runtime/hf-dataset
+./scripts/prepare_from_hf.sh --dataset-dir .runtime/hf-dataset
 bash .runtime/tasks/prepare_images.sh
+cp .env.example .env
 ```
+
+Add the API keys for the agent and grader to `.env`. The defaults use
+`ANTHROPIC_API_KEY` and `OPENAI_API_KEY`; any valid `KEY=VALUE` entry is
+forwarded to both, so other providers work too.
 
 List the prepared tasks:
 
@@ -19,8 +27,8 @@ List the prepared tasks:
 find .runtime/tasks/tasks -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
 ```
 
-Run one task:
+Run a tested example task:
 
 ```bash
-bash .runtime/tasks/run_task.sh <task-directory>
+bash .runtime/tasks/run_task.sh mercor-world418-tk-02-2bdbc68c
 ```
