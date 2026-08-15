@@ -7,7 +7,7 @@
 ARG BASE_IMAGE=archipelago-environment:base
 FROM ${BASE_IMAGE}
 
-COPY src/apex11/runtime/world/ /app/tools/
+COPY runtime/world/ /app/tools/
 RUN chmod +x /app/tools/start.sh /app/tools/*.py
 
 # World data is mounted read-only per trial rather than baked, so one image

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Grade a Harbor trial with the archipelago grading runner.
+"""Grade a Harbor trial with the Archipelago grading runner.
 
 Reads the task's ``grading_config.json``, translates the Harbor-side artifacts
 (ATIF trajectory, tar.gz snapshots) into what the runner expects, and writes the

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Entrypoint for the world sidecar of a Harbor task. Starts the gateway, seeds
+# Entrypoint for a Harbor task's world sidecar. Starts the gateway, seeds
 # the world, then stays in the foreground for the life of the trial.
 #
 set -euo pipefail

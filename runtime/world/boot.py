@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Boot an archipelago world inside a Harbor compose sidecar.
+"""Boot an Archipelago world inside a Harbor compose sidecar.
 
 Seeds the subsystems from the mounted world data, mounts the world's MCP servers
 on the gateway, and (when asked) captures the initial snapshot the verifier diffs
