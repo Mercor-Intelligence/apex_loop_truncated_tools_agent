@@ -13,7 +13,6 @@ REPO_ID = re.compile(r"^[A-Za-z0-9][\w.-]*/[A-Za-z0-9][\w.-]*$")
 REQUIRED_DATASET_FILES = (
     "tasks_and_rubrics.json",
     "world_descriptions.json",
-    "metadata.json",
 )
 IGNORED_LOCAL_PARTS = {".cache", ".git", ".venv", "__pycache__"}
 
