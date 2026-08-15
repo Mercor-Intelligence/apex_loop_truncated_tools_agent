@@ -11,17 +11,16 @@ cd apex-agents-1.1
 uv sync
 uv run hf download mercor/apex-agents-v1.1 \
   --repo-type dataset \
-  --local-dir .runtime/hf-dataset
-./scripts/prepare_from_hf.sh --dataset-dir .runtime/hf-dataset
-bash .runtime/tasks/prepare_images.sh
+  --local-dir .runtime/tasks
 cp .env.example .env
+bash .runtime/tasks/prepare_images.sh
 ```
 
 Add the API keys for the agent and grader to `.env`. The defaults use
 `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`; any valid `KEY=VALUE` entry is
 forwarded to both, so other providers work too.
 
-List the prepared tasks:
+The Hugging Face dataset is already in Harbor format. List its tasks:
 
 ```bash
 find .runtime/tasks/tasks -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort
