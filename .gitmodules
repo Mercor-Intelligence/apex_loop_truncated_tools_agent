@@ -1,0 +1,3 @@
+[submodule "vendor/archipelago"]
+	path = vendor/archipelago
+	url = https://github.com/Mercor-Intelligence/archipelago.git

@@ -6,7 +6,6 @@ gateway's ``/data/populate`` takes one tar.gz per subsystem, rooted at that
 subsystem — so each zip becomes two archives plus the world's MCP config.
 """
 
-import importlib.util
 import json
 import shutil
 import tarfile
@@ -15,6 +14,8 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+from apex11 import mcp_config
+
 from .profile import DatasetProfile
 
 SUBSYSTEM_ARCHIVES = {"filesystem": "filesystem.tar.gz", ".apps_data": "apps_data.tar.gz"}
@@ -22,24 +23,6 @@ WORLD_SOURCE_ALIASES = {
     "filesystem": ("filesystem",),
     ".apps_data": (".apps_data", "apps_data"),
 }
-
-
-def load_mcp_builder(archipelago_dir: Path):
-    """Import build_mcp_config from the archipelago checkout.
-
-    The service-name mapping lives with the servers it names, so the converter
-    reads it from archipelago rather than keeping a second copy that can drift.
-    """
-    module_path = archipelago_dir / "harbor/tools/build_mcp_config.py"
-    if not module_path.exists():
-        raise FileNotFoundError(
-            f"{module_path} not found — point --archipelago at an archipelago checkout"
-        )
-    spec = importlib.util.spec_from_file_location("a2h_build_mcp_config", module_path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _tar_subsystem(source: Path, dest: Path) -> int:

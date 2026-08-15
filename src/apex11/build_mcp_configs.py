@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import sys
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 
+from . import mcp_config
 from .runtime_utils import atomic_json
 
 
@@ -20,20 +19,8 @@ NON_MCP_SERVICES = {
 }
 
 
-def load_builder(archipelago: Path) -> ModuleType:
-    path = archipelago / "harbor" / "tools" / "build_mcp_config.py"
-    if not path.is_file():
-        raise ValueError(f"missing Archipelago MCP builder: {path}")
-    spec = importlib.util.spec_from_file_location("apex11_mcp_builder", path)
-    if spec is None or spec.loader is None:
-        raise ValueError(f"cannot load Archipelago MCP builder: {path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def config_for_world(
-    world: dict[str, Any], builder: ModuleType
+    world: dict[str, Any]
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     resolved: list[tuple[str, dict[str, Any]]] = []
     ignored: list[dict[str, str]] = []
@@ -49,7 +36,7 @@ def config_for_world(
             )
             continue
         try:
-            resolved.append(builder.resolve(app))
+            resolved.append(mcp_config.resolve(app))
         except KeyError as exc:
             raise ValueError(
                 f"world {world.get('world_id')} has unsupported app {app!r}"
@@ -62,7 +49,6 @@ def config_for_world(
 
 def build_all(
     dataset: Path,
-    archipelago: Path,
     output: Path,
 ) -> dict[str, Any]:
     worlds_path = dataset / "world_descriptions.json"
@@ -71,7 +57,6 @@ def build_all(
     worlds = json.loads(worlds_path.read_text())
     if not isinstance(worlds, list):
         raise ValueError("world_descriptions.json must contain a list")
-    builder = load_builder(archipelago)
     output.mkdir(parents=True, exist_ok=True)
     ignored_services: list[dict[str, str]] = []
     network_worlds: list[str] = []
@@ -79,10 +64,10 @@ def build_all(
         world_id = str(world.get("world_id") or "")
         if not world_id:
             raise ValueError("world index contains a record without world_id")
-        config, ignored = config_for_world(world, builder)
+        config, ignored = config_for_world(world)
         atomic_json(output / f"{world_id}.json", config)
         ignored_services.extend({"world_id": world_id, **item} for item in ignored)
-        if builder.requires_network(config):
+        if mcp_config.requires_network(config):
             network_worlds.append(world_id)
     return {
         "worlds": len(worlds),
@@ -95,7 +80,6 @@ def build_all(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", required=True, type=Path)
-    parser.add_argument("--archipelago", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--report", type=Path)
     return parser.parse_args(argv)
@@ -106,7 +90,6 @@ def main(argv: list[str] | None = None) -> None:
     try:
         report = build_all(
             args.dataset.resolve(),
-            args.archipelago.resolve(),
             args.output.resolve(),
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
