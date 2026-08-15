@@ -1,14 +1,6 @@
 .venv/
 .env
 __pycache__/
-.pytest_cache/
 *.pyc
 .runtime/
-generated/
-staging/
-cleanroom*/
-e2e-jobs/
 jobs*/
-reports/*.json
-reports/*.log
-reports/mcp-configs/

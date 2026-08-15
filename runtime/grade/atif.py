@@ -1,4 +1,4 @@
-"""Convert a Harbor ATIF trajectory into the archipelago grading shape.
+"""Convert a Harbor ATIF trajectory into the Archipelago grading shape.
 
 Harbor agents write ATIF to ``/logs/agent/trajectory.json``; the grading runner
 takes an ``AgentTrajectoryOutput`` (litellm-style ``messages``). Keeping the

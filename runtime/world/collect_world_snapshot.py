@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""``[[verifier.collect]]`` hook for the world service: capture the final snapshot.
+"""Harbor ``[[verifier.collect]]`` hook: capture the final world snapshot.
 
 Runs after the agent is torn down and before the verifier starts, so what it
 writes is the state the grader diffs against the initial snapshot.

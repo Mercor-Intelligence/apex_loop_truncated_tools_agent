@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Harbor verifier entrypoint. Runs in the separate verifier container after the
+# Harbor's verifier entrypoint. Runs in the separate verifier container after the
 # agent is torn down and the collect hooks have landed their artifacts.
 #
 set -eu

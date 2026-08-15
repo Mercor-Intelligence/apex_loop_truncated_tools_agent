@@ -2,10 +2,5 @@
 !archipelago/
 !archipelago/grading/
 !archipelago/grading/**
-!src/
-!src/apex11/
-!src/apex11/runtime/
-!src/apex11/runtime/grade/
-!src/apex11/runtime/grade/**
-!src/apex11/runtime/world/
-!src/apex11/runtime/world/**
+!runtime/
+!runtime/**

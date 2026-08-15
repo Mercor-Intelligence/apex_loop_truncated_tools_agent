@@ -22,7 +22,7 @@ RUN cd /app/grading \
  && UV_PYTHON="$(command -v python3)" uv sync --frozen --no-install-project
 
 COPY archipelago/grading/ /app/grading/
-COPY src/apex11/runtime/grade/ /tests/
+COPY runtime/grade/ /tests/
 RUN chmod +x /tests/test.sh
 
 ENV GRADING_PROJECT=/app/grading
