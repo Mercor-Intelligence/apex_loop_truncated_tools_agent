@@ -117,7 +117,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="a2h", description=__doc__)
+    parser = argparse.ArgumentParser(prog="apex11-convert", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
     convert = sub.add_parser("convert", help="emit a Harbor dataset")

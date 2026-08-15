@@ -42,6 +42,13 @@ The preparation command:
 All downloaded and generated data is written under `.runtime/`, which is ignored
 by Git.
 
+## Repository layout
+
+- `src/apex11/` contains the download, validation, conversion, and container helper code.
+- `runtime/` contains only the Docker image definitions and build entrypoint.
+- `scripts/prepare_from_hf.sh` is the single user-facing preparation command.
+- `vendor/archipelago` is a pinned submodule to the public runtime dependency.
+
 To prepare only selected tasks while still validating the complete source:
 
 ```bash
