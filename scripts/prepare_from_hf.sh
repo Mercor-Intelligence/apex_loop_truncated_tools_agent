@@ -6,7 +6,6 @@ WORK_DIR="$ROOT_DIR/.runtime"
 DATASET_DIR=""
 REPO_ID="mercor/apex-agents-v1.1-test"
 SOURCE_EXPLICIT=0
-A2H_ROOT="$ROOT_DIR/vendor/archipelago-to-harbor"
 ARCHIPELAGO_DIR="$ROOT_DIR/vendor/archipelago"
 TASK_ARGS=()
 
@@ -16,7 +15,6 @@ usage: prepare_from_hf.sh [--repo-id OWNER/REPO | --dataset-dir DIR] [options]
 
 Options:
   --work-dir DIR       ignored output root (default: ./.runtime)
-  --a2h-root DIR       Vendored archipelago-to-harbor converter
   --task-id ID         convert one task; repeat for a smoke subset
 EOF
 }
@@ -26,7 +24,6 @@ while (($#)); do
     --repo-id) REPO_ID="$2"; SOURCE_EXPLICIT=$((SOURCE_EXPLICIT + 1)); shift 2 ;;
     --dataset-dir) DATASET_DIR="$2"; SOURCE_EXPLICIT=$((SOURCE_EXPLICIT + 1)); shift 2 ;;
     --work-dir) WORK_DIR="$2"; shift 2 ;;
-    --a2h-root) A2H_ROOT="$2"; shift 2 ;;
     --task-id) TASK_ARGS+=(--task-id "$2"); shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage; exit 2 ;;
@@ -37,7 +34,6 @@ if ((SOURCE_EXPLICIT > 1)); then
   usage
   exit 2
 fi
-test -f "$A2H_ROOT/a2h/__main__.py" || { echo "missing converter: $A2H_ROOT" >&2; exit 1; }
 if [[ ! -f "$ARCHIPELAGO_DIR/environment/Dockerfile" ]]; then
   git -C "$ROOT_DIR" submodule update --init --recursive vendor/archipelago
 fi
@@ -66,7 +62,7 @@ uv run apex11-build-mcp-configs \
   --report "$WORK_DIR/mcp_config_report.json"
 
 RUNNER_DIR="$WORK_DIR/tasks"
-PYTHONPATH="$A2H_ROOT${PYTHONPATH:+:$PYTHONPATH}" uv run python -m a2h convert \
+uv run apex11-convert convert \
   --dataset "$DATASET_DIR" \
   --out "$RUNNER_DIR" \
   --mcp-config-dir "$WORK_DIR/mcp-configs" \
@@ -77,8 +73,7 @@ PYTHONPATH="$A2H_ROOT${PYTHONPATH:+:$PYTHONPATH}" uv run python -m a2h convert \
 uv run apex11-validate-runtime "$RUNNER_DIR" \
   --report "$WORK_DIR/runtime_validation.json"
 
-PYTHONPATH="$A2H_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
-  uv run --with harbor==0.20.0 python -m a2h.validate "$RUNNER_DIR"
+uv run --with harbor==0.20.0 python -m apex11.converter.validate "$RUNNER_DIR"
 
 echo "Local runnable task repository (gitignored): $RUNNER_DIR"
 echo "Next: cd '$RUNNER_DIR' && bash prepare_images.sh && bash run_task.sh <task>"

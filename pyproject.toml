@@ -8,10 +8,11 @@ dependencies = [
 ]
 
 [project.scripts]
+apex11-convert = "apex11.converter.__main__:main"
 apex11-validate = "apex11.validate_dataset:main"
 apex11-build-mcp-configs = "apex11.build_mcp_configs:main"
 apex11-download-hf = "apex11.download_hf:main"
-apex11-validate-runtime = "apex11.validate_harbor:main"
+apex11-validate-runtime = "apex11.validate_runtime:main"
 
 [build-system]
 requires = ["hatchling"]

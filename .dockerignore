@@ -1,0 +1,12 @@
+*
+!vendor/
+!vendor/archipelago/
+!vendor/archipelago/grading/
+!vendor/archipelago/grading/**
+!src/
+!src/apex11/
+!src/apex11/runtime/
+!src/apex11/runtime/grade/
+!src/apex11/runtime/grade/**
+!src/apex11/runtime/world/
+!src/apex11/runtime/world/**

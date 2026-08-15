@@ -29,7 +29,7 @@ docker build -t "$BASE_IMAGE" -f "$ARCHIPELAGO_DIR/environment/Dockerfile" "$ARC
 
 echo "==> world sidecar ($WORLD_IMAGE)"
 docker build --build-arg "BASE_IMAGE=$BASE_IMAGE" \
-    -t "$WORLD_IMAGE" -f "$RUNTIME_DIR/Dockerfile.world" "$RUNTIME_DIR"
+    -t "$WORLD_IMAGE" -f "$RUNTIME_DIR/Dockerfile.world" "$ROOT"
 
 echo "==> agent ($AGENT_IMAGE)"
 docker build -t "$AGENT_IMAGE" -f "$RUNTIME_DIR/Dockerfile.agent" "$RUNTIME_DIR"

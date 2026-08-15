@@ -5,7 +5,7 @@ models, not a reimplementation of them. A task that fails `is_valid_dir` is
 *silently skipped* by directory scans, so catching it here is the difference
 between a 480-task dataset and a quietly 300-task one.
 
-    ~/.local/share/uv/tools/harbor/bin/python -m a2h.validate <dataset-dir>
+    uv run --with harbor==0.20.0 python -m apex11.converter.validate <dataset-dir>
 """
 
 import json
@@ -19,7 +19,7 @@ try:
 except ImportError:  # pragma: no cover - guidance beats a traceback
     sys.exit(
         "harbor is not importable. Run this with the harbor tool interpreter:\n"
-        "  ~/.local/share/uv/tools/harbor/bin/python -m a2h.validate <dataset-dir>"
+        "  uv run --with harbor==0.20.0 python -m apex11.converter.validate <dataset-dir>"
     )
 
 
