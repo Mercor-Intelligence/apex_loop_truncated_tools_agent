@@ -46,7 +46,9 @@ test -f "$ROOT_DIR/runtime/build_images.sh" || { echo "missing runtime bridge" >
 mkdir -p "$WORK_DIR"
 if [[ -z "$DATASET_DIR" ]]; then
   DATASET_DIR="$WORK_DIR/hf-dataset"
-  uv run apex11-download-hf --repo-id "$REPO_ID" --output "$DATASET_DIR"
+  uv run hf download "$REPO_ID" \
+    --repo-type dataset \
+    --local-dir "$DATASET_DIR"
 else
   DATASET_DIR="$(cd "$DATASET_DIR" && pwd)"
 fi
