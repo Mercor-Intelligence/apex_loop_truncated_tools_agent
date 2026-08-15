@@ -6,6 +6,7 @@ from typing import Any
 
 from .profile import DatasetProfile
 
+
 def _prepare_images(tag: str, prefix: str) -> str:
     return f"""\
 #!/usr/bin/env bash
@@ -86,7 +87,10 @@ AGENT="${{AGENT:-$(cfg agent)}}"
 export GRADING_MODEL="${{GRADING_MODEL:-$(cfg judge_model)}}"
 
 ENV_ARGS=()
-ENV_FILE="$BUNDLE_ROOT/.env"
+ENV_FILE="${{APEX_ENV_FILE:-$ROOT/.env}}"
+if [[ ! -f "$ENV_FILE" && -f "$BUNDLE_ROOT/.env" ]]; then
+    ENV_FILE="$BUNDLE_ROOT/.env"
+fi
 if [[ -f "$ENV_FILE" ]]; then
     ENV_ARGS+=(--env-file "$ENV_FILE")
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -117,17 +121,14 @@ exec "${{RUNNER[@]}}" run -p "$TASK_DIR" \\
 
 
 def _readme(
-    profile: DatasetProfile, summary: dict[str, Any], tag: str, harbor_version: str
+    profile: DatasetProfile,
+    summary: dict[str, Any],
+    _tag: str,
+    _harbor_version: str,
 ) -> str:
-    network = summary.get("network_worlds") or []
-    network_note = (
-        f"\n{len(network)} world(s) reach external APIs and need credentials "
-        "(`FMP_API_KEY`, `EDGAR_USER_AGENT`); every other world runs offline.\n"
-        if network
-        else ""
-    )
     return f"""\
 ---
+pretty_name: APEX Agents 1.1
 license: cc-by-4.0
 task_categories:
 - other
@@ -138,141 +139,30 @@ tags:
 - benchmark
 ---
 
-# {profile.name} (Harbor format)
+# APEX Agents 1.1
 
 {profile.description}
 
-A native [Harbor](https://harborframework.com) rendering of the
-[`mercor/{profile.name}`](https://huggingface.co/datasets/mercor/{profile.name})
-benchmark: {summary['tasks']} tasks across {summary['worlds']} worlds, runnable with
-any Harbor agent. Grading uses the same archipelago rubric evaluator as the
-published leaderboard.
+This dataset contains {summary["tasks"]} ready-to-run Harbor tasks across
+{summary["worlds"]} worlds.
 
-## Quick start
+## Run
 
 ```bash
-pip install harbor=={harbor_version}          # or: uv tool install harbor=={harbor_version}
-git clone <this repo> && cd {profile.name}-harbor
-git lfs pull                                  # world seed archives are LFS-backed
-
-bash prepare_images.sh                        # once: builds the three shared images
-bash run_task.sh <task-dir-name>              # run a single task
-harbor run -p tasks/ -n 4 -a claude-code -m <model>   # run the whole set
+git clone --recurse-submodules https://github.com/Mercor-Intelligence/apex-agents-1.1.git
+cd apex-agents-1.1
+uv sync
+uv run hf download mercor/apex-agents-v1.1 \\
+  --repo-type dataset \\
+  --local-dir .runtime/tasks
+cp .env.example .env
+bash .runtime/tasks/prepare_images.sh
+bash .runtime/tasks/run_task.sh mercor-world418-tk-02-2bdbc68c
 ```
 
-The repository also carries the local build workflow under `automation/`. It can
-reconstruct and validate a fresh Harbor tree directly from the public dataset:
-
-```bash
-cd automation
-./scripts/prepare_from_hf.sh --repo-id <org/dataset>
-```
-
-Any Harbor agent works — the workspace is reached over MCP, not through the agent's own
-filesystem:
-
-```bash
-AGENT=opencode     bash run_task.sh <task-dir-name>
-AGENT=archipelago  bash run_task.sh <task-dir-name>   # the agent of record
-```
-
-## How a task runs
-
-Each task boots three containers:
-
-| Container | Role |
-|---|---|
-| `world` | the archipelago environment, serving one MCP gateway at `http://world:8000/mcp` |
-| `main` | where the agent runs; it reaches the world only over MCP |
-| verifier | grades after the agent stops, using the archipelago rubric evaluator |
-
-World seed data is **mounted read-only and seeded on boot**, never baked into an
-image, so one set of images serves every world and no trial can alter what
-another trial reads.
-{network_note}
-### Running more than one task
-
-Harbor's teardown runs `compose down --rmi all`. Because one image set serves every
-task, the first trial to finish would otherwise delete what the rest need —
-`prepare_images.sh` tags a `…-keep` alias per image to prevent that. Keep those
-aliases, or each trial re-pulls several GB.
-
-Keep the tree intact when copying it somewhere else: each task mounts its world
-with a path relative to its own `environment/` directory, so `worlds/` has to stay
-a sibling of `tasks/`.
-
-If a trial produces no reward file, Harbor errors it rather than scoring zero.
-That is an infrastructure failure — retry it, don't record it as a result.
-
-Each `instruction.md` opens with a short note telling the agent its workspace is
-behind the `world` MCP server. That is load-bearing: Harbor attaches MCP servers
-asynchronously, and an agent that starts before they land sees an empty container
-and gives up with a confident zero. Don't strip it.
-
-## Layout
-
-```
-registry.json          harbor dataset index
-prepare_images.sh      builds the world / agent / verifier images
-run_task.sh            single-task launcher
-models.json            default agent and judge models
-worlds/<world_id>/     per-world seed archives + MCP config
-gold_files/<task_id>/  expert reference outputs (see below)
-tasks/<task>/
-  instruction.md       the prompt
-  task.toml            harbor task config
-  environment/         world sidecar compose (+ per-task input files)
-  tests/               grading config, gold reference, verifier Dockerfile
-```
-
-## Agents and model routing
-
-Agents talk to their model provider directly, so routing everything through one
-OpenAI-compatible proxy (LiteLLM and friends) needs the right base URL per agent.
-These are the combinations we have actually run:
-
-| Agent | Base URL | Notes |
-|---|---|---|
-| `claude-code` | `ANTHROPIC_BASE_URL=<proxy>` (**no** `/v1`) | its CLI appends `/v1/messages` itself |
-| `opencode` | `ANTHROPIC_BASE_URL=<proxy>/v1` | its provider appends only `/messages`, so the base must carry `/v1` |
-| `archipelago` | none | the runner reads `LITELLM_PROXY_API_BASE` / `_API_KEY` |
-
-Set `ANTHROPIC_API_KEY` to the proxy key in both stock cases.
-
-```bash
-export ANTHROPIC_BASE_URL="${{PROXY%/}}"       # claude-code
-export ANTHROPIC_BASE_URL="${{PROXY%/}}/v1"    # opencode
-export ANTHROPIC_API_KEY="$PROXY_KEY"
-```
-
-Two gotchas worth knowing before a large run:
-
-- **opencode wedges on buffered proxies.** Its provider defaults to a 10-second
-  response-header timeout; a proxy that only sends headers after the full
-  generation times out every real call and retries forever. Disable it:
-  ```bash
-  harbor run ... --agent-env 'OPENCODE_CONFIG_CONTENT={{"autoupdate":false,"provider":{{"openai":{{"options":{{"headerTimeout":false}}}}}}}}'
-  ```
-- **claude-code caps output tokens.** Long answers can hit its 32,000-token
-  ceiling; raise it with `--agent-env CLAUDE_CODE_MAX_OUTPUT_TOKENS=120000`.
-
-## Grading
-
-Rubric-based: each task carries 1-10 binary criteria, and a judge model grades
-each independently from the prompt, the agent's output, and the artifact diff
-between the initial and final world snapshots.
-
-Gold outputs ship as reference material (`tests/golden_reference.txt`,
-`tests/golden_responses.json`, `gold_files/<task_id>/`). Matching the published
-methodology, **they are not shown to the judge**.
-
-Set `GRADING_MODEL` to pick the judge, and `LITELLM_PROXY_API_BASE` /
-`LITELLM_PROXY_API_KEY` to route it through a proxy.
-
-## Intended use
-
-Model evaluation only. Training, fine-tuning or parameter fitting on this data is
-forbidden, as is crawling or scraping it.
+Put provider credentials in `.env`. Any valid `KEY=VALUE` entry is forwarded to
+both the agent and verifier. The default models use `ANTHROPIC_API_KEY` and
+`OPENAI_API_KEY`.
 """
 
 
@@ -288,9 +178,7 @@ def write_scaffold(
     agent: str,
     agent_model: str,
 ) -> None:
-    (out_dir / "prepare_images.sh").write_text(
-        _prepare_images(image_tag, image_prefix)
-    )
+    (out_dir / "prepare_images.sh").write_text(_prepare_images(image_tag, image_prefix))
     (out_dir / "run_task.sh").write_text(
         _run_task(image_prefix, image_tag, harbor_version)
     )
@@ -307,6 +195,11 @@ def write_scaffold(
     (out_dir / "README.md").write_text(
         _readme(profile, summary, image_tag, harbor_version)
     )
+    (out_dir / ".env.example").write_text(
+        "# Any valid KEY=VALUE entry is forwarded to the agent and verifier.\n"
+        "ANTHROPIC_API_KEY=\n"
+        "OPENAI_API_KEY=\n"
+    )
 
     # World archives are large binaries; task dirs stay plain text so harbor can
     # read them without git-lfs materializing anything first.
@@ -314,9 +207,5 @@ def write_scaffold(
         "worlds/**/*.tar.gz filter=lfs diff=lfs merge=lfs -text\n"
     )
     (out_dir / ".gitignore").write_text(
-        ".archipelago/\n"
-        "jobs*/\n"
-        "automation/.venv/\n"
-        "**/__pycache__/\n"
-        "*.pyc\n"
+        ".archipelago/\njobs*/\nautomation/.venv/\n**/__pycache__/\n*.pyc\n"
     )
