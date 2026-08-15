@@ -21,7 +21,7 @@ set -euo pipefail
 TAG="${{HARBOR_IMAGE_TAG:-{tag}}}"
 SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
 BUNDLE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CHECKOUT="$BUNDLE_ROOT/vendor/archipelago"
+CHECKOUT="$BUNDLE_ROOT/archipelago"
 BUILDER="$BUNDLE_ROOT/runtime/build_images.sh"
 
 test -f "$CHECKOUT/environment/Dockerfile" || {{
@@ -139,19 +139,13 @@ bash run_task.sh <task-dir-name>              # run a single task
 harbor run -p tasks/ -n 4 -a claude-code -m <model>   # run the whole set
 ```
 
-The repository also carries the local-only build workflow under `automation/`.
-After the private HF dataset exists, it can reconstruct and validate a fresh
-Harbor tree directly from that download:
+The repository also carries the local build workflow under `automation/`. It can
+reconstruct and validate a fresh Harbor tree directly from the public dataset:
 
 ```bash
 cd automation
-export HF_TOKEN="hf_..."
-./scripts/prepare_from_hf.sh --repo-id <org/private-dataset>
+./scripts/prepare_from_hf.sh --repo-id <org/dataset>
 ```
-
-The downloader refuses a public HF repository. Until publication, pass
-`--dataset-dir <local-hf-payload>` to exercise the identical conversion path
-without creating or changing any remote repository.
 
 Any Harbor agent works — the workspace is reached over MCP, not through the agent's own
 filesystem:

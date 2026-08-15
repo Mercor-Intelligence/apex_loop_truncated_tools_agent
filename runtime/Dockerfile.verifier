@@ -17,11 +17,11 @@ RUN pip install --no-cache-dir uv
 RUN mkdir -p /logs/agent /logs/verifier /logs/artifacts /logs/world
 
 # Dependency layer before the source so per-task rebuilds stay cached.
-COPY vendor/archipelago/grading/pyproject.toml vendor/archipelago/grading/uv.lock /app/grading/
+COPY archipelago/grading/pyproject.toml archipelago/grading/uv.lock /app/grading/
 RUN cd /app/grading \
  && UV_PYTHON="$(command -v python3)" uv sync --frozen --no-install-project
 
-COPY vendor/archipelago/grading/ /app/grading/
+COPY archipelago/grading/ /app/grading/
 COPY src/apex11/runtime/grade/ /tests/
 RUN chmod +x /tests/test.sh
 

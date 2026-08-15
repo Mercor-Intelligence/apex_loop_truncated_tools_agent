@@ -1,8 +1,7 @@
 *
-!vendor/
-!vendor/archipelago/
-!vendor/archipelago/grading/
-!vendor/archipelago/grading/**
+!archipelago/
+!archipelago/grading/
+!archipelago/grading/**
 !src/
 !src/apex11/
 !src/apex11/runtime/
