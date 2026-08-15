@@ -6,10 +6,7 @@ from typing import Any
 
 from .profile import DatasetProfile
 
-DEFAULT_ARCHIPELAGO_REPO = "https://github.com/Mercor-Intelligence/archipelago.git"
-
-
-def _prepare_images(repo: str, ref: str, tag: str, prefix: str) -> str:
+def _prepare_images(tag: str, prefix: str) -> str:
     return f"""\
 #!/usr/bin/env bash
 #
@@ -21,30 +18,19 @@ def _prepare_images(repo: str, ref: str, tag: str, prefix: str) -> str:
 #
 set -euo pipefail
 
-REPO="${{ARCHIPELAGO_REPO:-{repo}}}"
-REF="${{ARCHIPELAGO_REF:-{ref}}}"
 TAG="${{HARBOR_IMAGE_TAG:-{tag}}}"
 SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
-BUNDLED_CHECKOUT="$(cd "$SCRIPT_DIR/../.." && pwd)/vendor/archipelago"
-CHECKOUT="${{ARCHIPELAGO_DIR:-$BUNDLED_CHECKOUT}}"
+BUNDLE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CHECKOUT="$BUNDLE_ROOT/vendor/archipelago"
+BUILDER="$BUNDLE_ROOT/runtime/build_images.sh"
 
-if [ -f "$CHECKOUT/harbor/build_images.sh" ]; then
-    echo "==> reusing checkout at $CHECKOUT"
-elif [ -e "$CHECKOUT" ]; then
-    echo "invalid archipelago checkout at $CHECKOUT: harbor/build_images.sh is missing" >&2
+test -f "$CHECKOUT/environment/Dockerfile" || {{
+    echo "missing submodule; run: git submodule update --init --recursive" >&2
     exit 1
-else
-    echo "==> cloning $REPO@$REF"
-    git clone --depth 1 --branch "$REF" "$REPO" "$CHECKOUT"
-fi
+}}
+test -x "$BUILDER" || {{ echo "missing runtime builder: $BUILDER" >&2; exit 1; }}
 
-# A developer checkout may contain grading/.venv. Without a context exclusion,
-# Docker's second COPY in Dockerfile.verifier overwrites the image-built venv
-# with host-only absolute symlinks. Dockerfile-specific ignores are supported by
-# BuildKit and leave the rest of the upstream context untouched.
-printf '%s\n' 'grading/.venv' > "$CHECKOUT/harbor/Dockerfile.verifier.dockerignore"
-
-HARBOR_IMAGE_PREFIX="{prefix}" bash "$CHECKOUT/harbor/build_images.sh" "$TAG"
+ARCHIPELAGO_DIR="$CHECKOUT" HARBOR_IMAGE_PREFIX="{prefix}" bash "$BUILDER" "$TAG"
 
 docker run --rm --entrypoint /app/.venv/bin/python "{prefix}-world:$TAG" -c \
     'from runner.main import app; assert app is not None'
@@ -286,11 +272,9 @@ def write_scaffold(
     judge_model: str,
     agent: str,
     agent_model: str,
-    archipelago_repo: str = DEFAULT_ARCHIPELAGO_REPO,
-    archipelago_ref: str = "main",
 ) -> None:
     (out_dir / "prepare_images.sh").write_text(
-        _prepare_images(archipelago_repo, archipelago_ref, image_tag, image_prefix)
+        _prepare_images(image_tag, image_prefix)
     )
     (out_dir / "run_task.sh").write_text(
         _run_task(image_prefix, image_tag, harbor_version)

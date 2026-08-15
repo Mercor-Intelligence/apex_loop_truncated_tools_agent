@@ -14,7 +14,8 @@ from .convert import (
 from .grading import DEFAULT_JUDGE_MODEL
 from .profile import get_profile
 from .scaffold import write_scaffold
-from .worlds import convert_world, load_mcp_builder
+from .worlds import convert_world
+from apex11 import mcp_config
 
 
 def _load(path: Path):
@@ -27,11 +28,8 @@ def cmd_convert(args: argparse.Namespace) -> None:
     profile = get_profile(args.profile)
     dataset_root = Path(args.dataset).resolve()
     out_dir = Path(args.out).resolve()
-    archipelago = Path(args.archipelago).resolve()
-
     tasks = _load(dataset_root / profile.tasks_index)
     worlds = {w[profile.world_id_field]: w for w in _load(dataset_root / profile.worlds_index)}
-    mcp_builder = load_mcp_builder(archipelago)
 
     if args.task_id:
         tasks = [t for t in tasks if t[profile.task_id_field] in set(args.task_id)]
@@ -68,7 +66,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
             dataset_root,
             out_dir / "worlds",
             profile,
-            mcp_builder,
+            mcp_config,
             force=args.force_worlds,
             mcp_config_dir=Path(args.mcp_config_dir) if args.mcp_config_dir else None,
         )
@@ -114,7 +112,6 @@ def cmd_convert(args: argparse.Namespace) -> None:
         judge_model=args.judge_model,
         agent=args.agent,
         agent_model=args.agent_model,
-        archipelago_ref=args.archipelago_ref,
     )
     print("\n" + json.dumps(summary, indent=2))
 
@@ -126,7 +123,6 @@ def main() -> None:
     convert = sub.add_parser("convert", help="emit a Harbor dataset")
     convert.add_argument("--dataset", required=True, help="archipelago-shaped dataset root")
     convert.add_argument("--out", required=True, help="output Harbor dataset dir")
-    convert.add_argument("--archipelago", default="/home/ubuntu/archipelago")
     convert.add_argument("--profile", default="apex-agents")
     convert.add_argument("--version", default="1.0")
     convert.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
@@ -142,7 +138,6 @@ def main() -> None:
     convert.add_argument("--harbor-version", default="0.14.0")
     convert.add_argument("--agent", default="claude-code")
     convert.add_argument("--agent-model", default="anthropic/claude-opus-4-5")
-    convert.add_argument("--archipelago-ref", default="main")
     convert.add_argument(
         "--mcp-config-dir",
         help="dir of pre-generated <world_id>.json /apps payloads (e.g. ArCo-derived "

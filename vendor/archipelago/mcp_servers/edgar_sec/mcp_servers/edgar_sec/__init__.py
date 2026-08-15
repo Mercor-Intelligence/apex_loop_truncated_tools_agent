@@ -1,1 +1,0 @@
-"""EDGAR SEC MCP Server."""

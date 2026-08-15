@@ -17,12 +17,18 @@ images and run artifacts.
 ## Prepare the tasks
 
 ```bash
-git clone https://github.com/Mercor-Intelligence/apex-agents-1.1.git
+git clone --recurse-submodules https://github.com/Mercor-Intelligence/apex-agents-1.1.git
 cd apex-agents-1.1
 uv sync
 
 export HF_TOKEN="<read token for the private dataset>"
 ./scripts/prepare_from_hf.sh
+```
+
+For an existing clone, initialize the pinned runtime dependency first:
+
+```bash
+git submodule update --init --recursive
 ```
 
 The preparation command:
@@ -64,7 +70,7 @@ The run output is stored under `.runtime/tasks/jobs/` by default. Set `MODEL`,
 ## License
 
 Original material in this repository is licensed under the Creative Commons
-Attribution 4.0 International license. See `LICENSE`. The vendored Archipelago
-component retains its Apache 2.0 license in `vendor/archipelago/LICENSE`.
+Attribution 4.0 International license. See `LICENSE`. The Archipelago submodule
+retains its Apache 2.0 license in `vendor/archipelago/LICENSE`.
 
 Copyright 2026 Mercor.
