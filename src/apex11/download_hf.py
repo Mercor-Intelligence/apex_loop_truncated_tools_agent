@@ -1,4 +1,4 @@
-"""Download and verify the private Hugging Face source dataset."""
+"""Download a Hugging Face source dataset."""
 
 from __future__ import annotations
 
@@ -13,13 +13,11 @@ from huggingface_hub import HfApi, snapshot_download
 from apex11.runtime_utils import REPO_ID, inventory
 
 
-def download_private_dataset(
-    repo_id: str, output: Path, token: str
+def download_dataset(
+    repo_id: str, output: Path, token: str | None = None
 ) -> dict[str, object]:
     api = HfApi(token=token)
     info = api.repo_info(repo_id=repo_id, repo_type="dataset")
-    if not info.private:
-        raise RuntimeError(f"refusing non-private dataset: {repo_id}")
     snapshot_download(
         repo_id=repo_id,
         repo_type="dataset",
@@ -27,7 +25,9 @@ def download_private_dataset(
         token=token,
     )
     report = inventory(output)
-    report.update({"repo_id": repo_id, "repo_type": "dataset", "private": True})
+    report.update(
+        {"repo_id": repo_id, "repo_type": "dataset", "private": bool(info.private)}
+    )
     return report
 
 
@@ -42,11 +42,9 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     if not REPO_ID.fullmatch(args.repo_id):
         sys.exit("--repo-id must be in owner/name form")
-    token = os.environ.get("HF_TOKEN", "").strip()
-    if not token:
-        sys.exit("HF_TOKEN is required to download the private dataset")
+    token = os.environ.get("HF_TOKEN", "").strip() or None
     try:
-        report = download_private_dataset(args.repo_id, args.output.resolve(), token)
+        report = download_dataset(args.repo_id, args.output.resolve(), token)
     except (RuntimeError, ValueError) as exc:
         sys.exit(str(exc))
     print(json.dumps(report, indent=2))

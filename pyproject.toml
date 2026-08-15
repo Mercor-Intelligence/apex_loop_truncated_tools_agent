@@ -1,7 +1,8 @@
 [project]
 name = "apex-agents-1-1-workflow"
 version = "0.2.0"
-description = "Private dataset preparation and execution workflow for APEX Agents 1.1"
+description = "Dataset preparation and execution workflow for APEX Agents 1.1"
+license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
     "huggingface-hub>=0.34.0",

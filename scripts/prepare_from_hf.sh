@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK_DIR="$ROOT_DIR/.runtime"
 DATASET_DIR=""
-REPO_ID="mercor/apex-agents-v1.1-test"
+REPO_ID="mercor/apex-agents-v1.1"
 SOURCE_EXPLICIT=0
-ARCHIPELAGO_DIR="$ROOT_DIR/vendor/archipelago"
+ARCHIPELAGO_DIR="$ROOT_DIR/archipelago"
 TASK_ARGS=()
 
 usage() {
@@ -35,7 +35,7 @@ if ((SOURCE_EXPLICIT > 1)); then
   exit 2
 fi
 if [[ ! -f "$ARCHIPELAGO_DIR/environment/Dockerfile" ]]; then
-  git -C "$ROOT_DIR" submodule update --init --recursive vendor/archipelago
+  git -C "$ROOT_DIR" submodule update --init --recursive archipelago
 fi
 test -f "$ARCHIPELAGO_DIR/environment/Dockerfile" || {
   echo "missing Archipelago submodule: $ARCHIPELAGO_DIR" >&2

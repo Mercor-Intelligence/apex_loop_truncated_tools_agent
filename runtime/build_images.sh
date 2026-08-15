@@ -12,7 +12,7 @@ TAG="${1:-${HARBOR_IMAGE_TAG:-latest}}"
 PREFIX="${HARBOR_IMAGE_PREFIX:-archipelago-harbor}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="$ROOT/runtime"
-ARCHIPELAGO_DIR="${ARCHIPELAGO_DIR:-$ROOT/vendor/archipelago}"
+ARCHIPELAGO_DIR="${ARCHIPELAGO_DIR:-$ROOT/archipelago}"
 
 BASE_IMAGE="archipelago-environment:base-${TAG}"
 WORLD_IMAGE="${PREFIX}-world:${TAG}"
