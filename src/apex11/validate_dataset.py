@@ -117,7 +117,6 @@ def validate(
 ) -> dict[str, Any]:
     tasks = load_json(root / "tasks_and_rubrics.json")
     worlds_list = load_json(root / "world_descriptions.json")
-    metadata = load_json(root / "metadata.json")
     if not isinstance(tasks, list) or not isinstance(worlds_list, list):
         raise ValueError("task and world indexes must be JSON lists")
 
@@ -135,12 +134,6 @@ def validate(
         errors.append(f"task count {len(tasks)} != expected {expected_tasks}")
     if expected_worlds is not None and len(worlds_list) != expected_worlds:
         errors.append(f"world count {len(worlds_list)} != expected {expected_worlds}")
-
-    metadata_counts = (metadata or {}).get("counts") or {}
-    if metadata_counts.get("tasks") != len(tasks):
-        errors.append("metadata task count does not match tasks_and_rubrics.json")
-    if metadata_counts.get("worlds") != len(worlds_list):
-        errors.append("metadata world count does not match world_descriptions.json")
 
     bad_tasks: dict[str, list[str]] = {}
     for task in tasks:

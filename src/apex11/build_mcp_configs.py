@@ -12,7 +12,7 @@ from . import mcp_config
 from .runtime_utils import atomic_json
 
 
-# Cursor is an alternative agent runtime in Studio, not a world tool. Harbor
+# Cursor is an alternative agent runtime, not a world tool. The task runner
 # supplies its own agent, so exposing Cursor as an MCP server would be incorrect.
 NON_MCP_SERVICES = {
     "svc_31dfee5c48984772a6161c3c5e847e1c": "Cursor",

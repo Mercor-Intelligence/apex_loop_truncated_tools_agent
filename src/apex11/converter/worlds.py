@@ -1,7 +1,7 @@
 """Repack world snapshots into what the Harbor world sidecar seeds from.
 
 Source snapshots are one zip per world containing ``filesystem/`` and either
-``.apps_data/`` (legacy exports) or ``apps_data/`` (current Studio exports). The
+``.apps_data/`` (legacy exports) or ``apps_data/`` (current exports). The
 gateway's ``/data/populate`` takes one tar.gz per subsystem, rooted at that
 subsystem — so each zip becomes two archives plus the world's MCP config.
 """
@@ -59,10 +59,8 @@ def convert_world(
     world_out = out_dir / world_id
     world_out.mkdir(parents=True, exist_ok=True)
 
-    # The dataset stores an /apps payload, not a derivation. Studio builds the
-    # same MCPServerConfig shape from ArCo, which needs DB access the OSS side
-    # does not have — so a caller that can derive it (the studio pipeline) passes
-    # configs in, and everyone else falls back to the static server mapping.
+    # The dataset stores an /apps payload, not a derivation. Source pipelines can
+    # supply derived configs; other callers fall back to the static server mapping.
     supplied = (mcp_config_dir / f"{world_id}.json") if mcp_config_dir else None
     if supplied and supplied.exists():
         config = json.loads(supplied.read_text())

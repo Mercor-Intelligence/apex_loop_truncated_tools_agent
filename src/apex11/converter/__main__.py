@@ -141,7 +141,7 @@ def main() -> None:
     convert.add_argument(
         "--mcp-config-dir",
         help="dir of pre-generated <world_id>.json /apps payloads (e.g. ArCo-derived "
-        "from the studio pipeline); falls back to the static server mapping",
+        "from the source pipeline); falls back to the static server mapping",
     )
     convert.set_defaults(func=cmd_convert)
 
