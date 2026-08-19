@@ -1,0 +1,31 @@
+{
+  "package_name": "apex_loop_truncated_tools_agent",
+  "agent": {
+    "agent_config_id": "loop_truncated_tools_agent",
+    "agent_name": "Loop w/ Tool Truncation (250 max steps)",
+    "agent_config_values": {
+      "timeout": 10800,
+      "max_steps": 250,
+      "max_output_chars": 32768,
+      "max_output_lines": 200,
+      "tool_call_timeout": 60,
+      "llm_response_timeout": 600
+    }
+  },
+  "source_revision": "2bb7e26b3599d9f55e7994198df45f374fe9b600",
+  "system_prompt_sha256": "13ed0fcf54430a9164345342482c3c0745eb068cc758ffd215361dc0ca1c58de",
+  "source_files": [
+    "runner/models.py",
+    "runner/agents/models.py",
+    "runner/agents/loop_truncated_tools_agent/main.py",
+    "runner/save/_normalize.py",
+    "runner/utils/decorators.py",
+    "runner/utils/error.py",
+    "runner/utils/image_fetch.py",
+    "runner/utils/litellm_patches.py",
+    "runner/utils/llm.py",
+    "runner/utils/mcp.py",
+    "runner/utils/settings.py",
+    "runner/utils/usage.py"
+  ]
+}
