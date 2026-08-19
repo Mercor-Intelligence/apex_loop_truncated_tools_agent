@@ -311,8 +311,6 @@ PROJ_FILE=$(find {_RUNNER_DIR} -maxdepth 3 -name pyproject.toml | head -1)
 PROJ=$(dirname "$PROJ_FILE")
 cd "$PROJ"
 find runner -type d -exec touch {{}}/__init__.py \\; 2>/dev/null || true
-UV_PYTHON="$(command -v python3)"
-export UV_PYTHON
 uv sync --frozen --no-install-project >&2
 rc=0
 uv run python -m runner_cli \
