@@ -1,0 +1,27 @@
+# Harbor job config for APEX-Agents 1.1.
+#
+# Harbor chooses the agent when a job starts, not in the task files, so this
+# file is how the benchmark records which agent and settings produced the
+# published leaderboard numbers. Clone the agent first and put it on your
+# PYTHONPATH:
+#
+#   git clone https://github.com/Mercor-Intelligence/apex_loop_truncated_tools_agent.git
+#   export PYTHONPATH="$PWD/apex_loop_truncated_tools_agent"
+#
+# Then run the benchmark, overriding the model as needed:
+#
+#   harbor run -c apex-agents-1.1.job.yaml -m anthropic/claude-opus-5
+#
+# Model and grader credentials come from your own environment. Never add them
+# to this file.
+
+agents:
+  - name: apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent
+    model_name: anthropic/claude-opus-5
+    kwargs:
+      max_steps: 250
+      agent_timeout_sec: 10800
+
+datasets:
+  - name: mercor/apex-agents-1-1
+    ref: "1.1"
