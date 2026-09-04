@@ -26,8 +26,8 @@ Install Docker and `uv`, then install Harbor:
 uv tool install harbor==0.20.0
 ```
 
-Clone this repository and set `ANTHROPIC_API_KEY` and any grader credentials in
-`.env`:
+Clone this repository, then set the API key for your model provider and any
+grader credentials in `.env`:
 
 ```bash
 git clone https://github.com/Mercor-Intelligence/apex_loop_truncated_tools_agent.git
