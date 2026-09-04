@@ -23,7 +23,6 @@
     "runner/utils/decorators.py",
     "runner/utils/error.py",
     "runner/utils/image_fetch.py",
-    "runner/utils/litellm_patches.py",
     "runner/utils/llm.py",
     "runner/utils/mcp.py",
     "runner/utils/settings.py",
