@@ -7,6 +7,8 @@
 <a href="https://www.mercor.com/apex/apex-agents-leaderboard/"><img src="https://img.shields.io/badge/🏆-Leaderboard-f59e0b"></a>
 <a href="mailto:apex@mercor.com"><img src="https://img.shields.io/badge/✉️-Contact-green"></a>
 
+**Akul Datta · Austin Bennett · Bertie Vidgen**
+
 This repository contains only the APEX truncated-loop agent — the agent behind
 every published APEX-Agents result. Harbor selects the agent when a job starts
 rather than in the task files, so the benchmark itself cannot record which agent
@@ -32,6 +34,12 @@ will change agent behaviour and your results will no longer be comparable to the
 published ones.
 
 ## Run from Harbor Hub
+
+> **Harbor does not pick the agent for you.** Running the dataset without an
+> agent falls back to Harbor's built-in `oracle` agent, which replays the
+> reference solution and scores near-perfectly. Always pass the APEX agent
+> explicitly, via `-c apex-agents-1.1.job.yaml` or `-a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent`.
+
 
 Install Docker and `uv`. Clone this repository, then pull the dataset:
 
