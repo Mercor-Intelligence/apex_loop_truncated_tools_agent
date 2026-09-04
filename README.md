@@ -21,10 +21,6 @@ trajectory is converted to ATIF before it is returned.
 
 ## Usage
 
-Harbor takes the agent as a run-time argument, so it must be named explicitly
-with `-c` or `-a`. Without one, Harbor runs its own `oracle` agent, which
-replays the reference solution.
-
 ### Harbor Hub
 
 Install Docker and `uv`, then clone this repository and download the dataset.
@@ -40,13 +36,14 @@ uvx --from harbor==0.20.0 harbor dataset download mercor/apex-agents-1-1@1.1
 ```
 
 Set `ANTHROPIC_API_KEY` and any grader credentials in `.env`, then run the
-benchmark with its pinned settings:
+benchmark:
 
 ```bash
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 uvx --from harbor==0.20.0 harbor run \
   --env-file .env \
-  -c apex-agents-1.1.job.yaml \
+  -d mercor/apex-agents-1-1@1.1 \
+  -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
 ```
 
@@ -82,11 +79,7 @@ uvx --from harbor==0.20.0 harbor run \
   -y
 ```
 
-Replace the model with any LiteLLM-compatible `provider/model`. The task's
-configured grader is used when `GRADING_MODEL` is blank. If an existing
-`apex-*:v1` tag points to a different image, the loader exits without replacing
-it; rerun with `--restore` only when you intend to activate this delivery's
-images.
+Replace the model with any LiteLLM-compatible `provider/model`.
 
 ## Contact
 
