@@ -7,55 +7,40 @@
 <a href="https://www.mercor.com/apex/apex-agents-leaderboard/"><img src="https://img.shields.io/badge/🏆-Leaderboard-f59e0b"></a>
 <a href="mailto:apex@mercor.com"><img src="https://img.shields.io/badge/✉️-Contact-green"></a>
 
-**Akul Datta, Austin Bennett, Bertie Vidgen**
+This repository contains the reference agent implementation for APEX-Agents. It
+is a basic wrapper around LiteLLM that truncates tool output and keeps
+everything else minimal. The tasks, world seeds, and shared runtime images are
+in the Harbor Hub and Hugging Face datasets.
 
-This repository contains only the APEX truncated-loop agent — the agent behind
-every published APEX-Agents result. Harbor selects the agent when a job starts
-rather than in the task files, so the benchmark itself cannot record which agent
-it expects. That is what this repository and `apex-agents-1.1.job.yaml` are for.
+The agent connects to the world's MCP gateway at `http://world:8000/mcp/`,
+exposes those tools to the model, and loops until the model replies without a
+tool call or the step budget is spent. Tool output is truncated to 200 lines or
+32,768 characters, whichever comes first, so a long output cannot fill the
+context window. The defaults are 250 steps and a 10,800 second timeout, and the
+trajectory is converted to ATIF before it is returned.
 
-The tasks and worlds live separately, and you can get them from either channel:
+## Usage
 
-| Channel | What it gives you |
-|:---|:---|
-| [Harbor Hub `mercor/apex-agents-1-1`](https://hub.harborframework.com/datasets/mercor/apex-agents-1-1) | 240 tasks; runtime images pulled from public ECR |
-| [Hugging Face `mercor/apex-agents-v1.1`](https://huggingface.co/datasets/mercor/apex-agents-v1.1) | The same 240 tasks as a self-contained delivery, with image archives and world seeds on disk |
+Harbor takes the agent as a run-time argument, so it must be named explicitly
+with `-c` or `-a`. Without one, Harbor runs its own `oracle` agent, which
+replays the reference solution.
 
-Both carry identical tasks and rubrics. They differ only in how the runtime
-arrives.
+### Harbor Hub
 
-## Version pin
-
-This agent is pinned, deliberately. `apex_loop_truncated_tools_agent/manifest.json`
-records the Studio revision it was vendored from and the SHA-256 of its system
-prompt. The published leaderboard numbers were produced by exactly this code at
-`max_steps = 250` and `timeout = 10800`. Upgrading it to a newer Studio revision
-will change agent behaviour and your results will no longer be comparable to the
-published ones.
-
-## Run from Harbor Hub
-
-> **Harbor does not pick the agent for you.** Running the dataset without an
-> agent falls back to Harbor's built-in `oracle` agent, which replays the
-> reference solution and scores near-perfectly. Always pass the APEX agent
-> explicitly, via `-c apex-agents-1.1.job.yaml` or `-a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent`.
-
-
-Install Docker and `uv`. Clone this repository, then pull the dataset:
+Install Docker and `uv`, then clone this repository and download the dataset.
+The runtime images are pulled from public ECR on first run, so there is no load
+step:
 
 ```bash
 git clone https://github.com/Mercor-Intelligence/apex_loop_truncated_tools_agent.git
 cd apex_loop_truncated_tools_agent
 cp .env.example .env
 
-export HARBOR_API_KEY=<your-key>
 uvx --from harbor==0.20.0 harbor dataset download mercor/apex-agents-1-1@1.1
 ```
 
-Set `ANTHROPIC_API_KEY` and any grader credentials in `.env`. The runtime images
-come from public ECR on first run, so there is no load step.
-
-Run the whole benchmark with the pinned settings:
+Set `ANTHROPIC_API_KEY` and any grader credentials in `.env`, then run the
+benchmark with its pinned settings:
 
 ```bash
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
@@ -65,19 +50,7 @@ uvx --from harbor==0.20.0 harbor run \
   -m anthropic/claude-opus-5
 ```
 
-Or run a single task:
-
-```bash
-PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
-uvx --from harbor==0.20.0 harbor run \
-  --env-file .env \
-  -p apex-agents-1-1/world418-tk-02-2bdbc68c \
-  -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
-  -m anthropic/claude-opus-5 \
-  -y
-```
-
-## Run from Hugging Face
+### Hugging Face
 
 Install Docker, `uv`, and the `hf` CLI, then clone this repository and download
 the shared images, selected task, and its world seed:

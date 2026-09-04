@@ -1,5 +1,6 @@
 {
   "package_name": "apex_loop_truncated_tools_agent",
+  "version": "1.1.0",
   "agent": {
     "agent_config_id": "loop_truncated_tools_agent",
     "agent_name": "Loop w/ Tool Truncation (250 max steps)",
