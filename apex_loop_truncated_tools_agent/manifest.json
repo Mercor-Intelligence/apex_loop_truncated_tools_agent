@@ -13,7 +13,7 @@
     }
   },
   "source_revision": "2bb7e26b3599d9f55e7994198df45f374fe9b600",
-  "system_prompt_sha256": "13ed0fcf54430a9164345342482c3c0745eb068cc758ffd215361dc0ca1c58de",
+  "system_prompt_sha256": "bd5e1821c0f089adde7c0bb77237a3672e93dc5ac137c7006b99cf5d5f53549b",
   "source_files": [
     "runner/models.py",
     "runner/agents/models.py",
