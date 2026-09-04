@@ -34,10 +34,16 @@ cp .env.example .env
 
 ### Harbor Hub
 
-Download the dataset:
+Run a task:
 
 ```bash
-harbor dataset download mercor/apex-agents-1-1@1.1
+PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
+harbor run \
+  --env-file .env \
+  -d mercor/apex-agents-1-1@1.0.0 \
+  -i 128-jr-1-f7f95d92 \
+  -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
+  -m anthropic/claude-opus-5
 ```
 
 Run the benchmark:
@@ -46,37 +52,45 @@ Run the benchmark:
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -d mercor/apex-agents-1-1@1.1 \
+  -d mercor/apex-agents-1-1@1.0.0 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
 ```
 
 ### Hugging Face
 
-Install the `hf` CLI, then download the shared images, selected task, and its
-world seed:
+Install the `hf` CLI, then download the delivery and load the three shared
+images:
 
 ```bash
 hf download mercor/apex-agents-v1.1 \
   --repo-type dataset \
-  --include "environment/**" \
-  --include "tasks/world418-tk-02-2bdbc68c/**" \
-  --include "worlds/law-world-418-benchmark--(world_e3d122de4d7f445cb69c42b915d96381)/**" \
   --local-dir apex-agents-v1.1
 
 bash apex-agents-v1.1/environment/load_images.sh
 ```
 
-Run the task:
+Run a task:
 
 ```bash
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -p apex-agents-v1.1/tasks/world418-tk-02-2bdbc68c \
+  -p apex-agents-v1.1/tasks/128-jr-1-f7f95d92 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5 \
   -y
+```
+
+Run the benchmark:
+
+```bash
+PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
+harbor run \
+  --env-file .env \
+  -p apex-agents-v1.1/tasks \
+  -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
+  -m anthropic/claude-opus-5
 ```
 
 Replace the model with any LiteLLM-compatible `provider/model`.
