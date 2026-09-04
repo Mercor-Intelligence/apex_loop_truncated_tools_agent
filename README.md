@@ -40,7 +40,7 @@ Run a task:
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -d mercor/apex-agents-1-1@1.0.0 \
+  -d mercor/apex-agents-1-1@1.0.1 \
   -i 128-jr-1-f7f95d92 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
@@ -52,7 +52,7 @@ Run the benchmark:
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -d mercor/apex-agents-1-1@1.0.0 \
+  -d mercor/apex-agents-1-1@1.0.1 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
 ```
