@@ -37,8 +37,7 @@ cp .env.example .env
 
 ### Harbor Hub
 
-Download the dataset. The runtime images are pulled from public ECR on first
-run:
+Download the dataset:
 
 ```bash
 harbor dataset download mercor/apex-agents-1-1@1.1
