@@ -7,7 +7,7 @@
 <a href="https://www.mercor.com/apex/apex-agents-leaderboard/"><img src="https://img.shields.io/badge/🏆-Leaderboard-f59e0b"></a>
 <a href="mailto:apex@mercor.com"><img src="https://img.shields.io/badge/✉️-Contact-green"></a>
 
-**Akul Datta · Austin Bennett · Bertie Vidgen**
+**Akul Datta, Austin Bennett, Bertie Vidgen**
 
 This repository contains only the APEX truncated-loop agent — the agent behind
 every published APEX-Agents result. Harbor selects the agent when a job starts
