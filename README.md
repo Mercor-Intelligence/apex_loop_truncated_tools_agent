@@ -11,12 +11,12 @@ This repository contains the reference agent implementation for APEX-Agents 1.1.
 The tasks, world seeds, and shared runtime images are in the Harbor Hub and
 Hugging Face datasets.
 
-The agent connects to the world's MCP gateway at `http://world:8000/mcp/`,
-exposes those tools to the model, and loops until the model replies without a
-tool call or the step budget is spent. Tool output is truncated to 200 lines or
-32,768 characters, whichever comes first, so a long output cannot fill the
-context window. The defaults are 250 steps and a 10,800 second timeout, and the
-trajectory is converted to ATIF before it is returned.
+The agent connects to the world's MCP gateway, exposes those tools to the
+model, and loops until the model replies without a tool call or the step
+budget is spent. Tool output is truncated to 200 lines or 32,768 characters,
+whichever comes first, so a long output cannot fill the context window. The
+defaults are 250 steps and a 10,800 second timeout, and the trajectory is
+converted to ATIF before it is returned.
 
 ## Usage
 
