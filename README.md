@@ -100,9 +100,9 @@ Replace the model with any LiteLLM-compatible `provider/model`.
 ```bibtex
 @misc{bennett2026apexagents11,
   title        = {Introducing APEX--Agents 1.1},
-  author       = {Bennett, A. and Datta, A. and Vidgen, B.},
+  author       = {Bennett, Austin and Datta, Akul and Vidgen, Bertie},
   year         = {2026},
-  month        = {January},
+  month        = {September},
   howpublished = {Mercor},
   url          = {https://www.mercor.com/blog/introducing-apex-agents-1-1/}
 }
