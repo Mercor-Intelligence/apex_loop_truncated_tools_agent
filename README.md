@@ -95,6 +95,27 @@ harbor run \
 
 Replace the model with any LiteLLM-compatible `provider/model`.
 
+## Citation
+
+```bibtex
+@misc{bennett2026apexagents11,
+  title        = {Introducing APEX--Agents 1.1},
+  author       = {Bennett, A. and Datta, A. and Vidgen, B.},
+  year         = {2026},
+  month        = {January},
+  howpublished = {Mercor},
+  url          = {https://www.mercor.com/blog/introducing-apex-agents-1-1/}
+}
+
+@misc{vidgen2026apexagents,
+  title        = {APEX--Agents},
+  author       = {Vidgen, Bertie and Mann, Austin and Fennelly, Abby and Wright Stanly, John and Rothman, Lucas and Burstein, Marco and Benchek, Julien and Ostrofsky, David and Ravichandran, Anirudh and Sur, Debnil and Venugopal, Neel and Hsia, Alannah and Robinson, Isaac and Huang, Calix and Varones, Olivia and Khan, Daniyal and Haines, Michael and Richards, Zach and Mahapatra, Chirag and Foody, Brendan and Nitski, Osvald},
+  year         = {2026},
+  howpublished = {arXiv},
+  url          = {https://arxiv.org/pdf/2601.14242}
+}
+```
+
 ## Contact
 
 [apex@mercor.com](mailto:apex@mercor.com)
