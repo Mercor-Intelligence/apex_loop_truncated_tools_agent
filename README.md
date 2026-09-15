@@ -13,7 +13,8 @@ Hugging Face datasets.
 
 The agent is a minimal LiteLLM tool-calling loop over the world's MCP tools.
 Tool output is truncated to 200 lines or 32K characters and the agent has a
-default of 250 total steps and a 10,800 second timeout.
+default of 100 total steps (turns) and a 10,800 second timeout, matching
+the leaderboard runs.
 
 ## Usage
 

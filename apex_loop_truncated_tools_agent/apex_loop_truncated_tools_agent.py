@@ -11,7 +11,7 @@ Run shape:
     PYTHONPATH=<delivery>/agent harbor run -p tasks/mercor-<slug> \
         -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent -m <model>
 
-This package exposes only the canonical 250-step truncated-loop harness.
+This package exposes only the canonical 100-step truncated-loop harness.
 """
 from __future__ import annotations
 
@@ -204,7 +204,7 @@ class ApexLoopTruncatedToolsAgent(BaseAgent):
         self._gateway_url = gateway_url
         # Canonical defaults; environment variables may override them.
         self._max_steps = (
-            max_steps if max_steps is not None else _env_int("MAX_STEPS", 250)
+            max_steps if max_steps is not None else _env_int("MAX_STEPS", 100)
         )
         self._agent_timeout = (
             agent_timeout_sec
@@ -289,7 +289,7 @@ class ApexLoopTruncatedToolsAgent(BaseAgent):
         messages = json.dumps(msgs)
         agent_config = json.dumps({
             "agent_config_id": "loop_truncated_tools_agent",
-            "agent_name": "Loop w/ Tool Truncation (250 max steps)",
+            "agent_name": "Loop w/ Tool Truncation (100 max steps)",
             "agent_config_values": {
                 "timeout": self._agent_timeout,
                 "max_steps": self._max_steps,

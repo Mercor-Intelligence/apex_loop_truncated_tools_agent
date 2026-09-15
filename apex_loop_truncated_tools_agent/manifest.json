@@ -3,10 +3,10 @@
   "version": "1.0.1",
   "agent": {
     "agent_config_id": "loop_truncated_tools_agent",
-    "agent_name": "Loop w/ Tool Truncation (250 max steps)",
+    "agent_name": "Loop w/ Tool Truncation (100 max steps)",
     "agent_config_values": {
       "timeout": 10800,
-      "max_steps": 250,
+      "max_steps": 100,
       "max_output_chars": 32768,
       "max_output_lines": 200,
       "tool_call_timeout": 60,
