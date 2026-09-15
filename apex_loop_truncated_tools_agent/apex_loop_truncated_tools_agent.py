@@ -289,7 +289,7 @@ class ApexLoopTruncatedToolsAgent(BaseAgent):
         messages = json.dumps(msgs)
         agent_config = json.dumps({
             "agent_config_id": "loop_truncated_tools_agent",
-            "agent_name": "Loop w/ Tool Truncation (100 max steps)",
+            "agent_name": "Loop w/ Tool Truncation",
             "agent_config_values": {
                 "timeout": self._agent_timeout,
                 "max_steps": self._max_steps,
