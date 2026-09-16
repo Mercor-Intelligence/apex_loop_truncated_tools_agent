@@ -14,7 +14,7 @@
     }
   },
   "source_revision": "2bb7e26b3599d9f55e7994198df45f374fe9b600",
-  "system_prompt_sha256": "bd5e1821c0f089adde7c0bb77237a3672e93dc5ac137c7006b99cf5d5f53549b",
+  "system_prompt_sha256": "dcfab3c1f685305d98fc2aa7cf72f275b158494a453f5917f1f0700d21ca69bb",
   "source_files": [
     "runner/models.py",
     "runner/agents/models.py",
@@ -27,5 +27,6 @@
     "runner/utils/mcp.py",
     "runner/utils/settings.py",
     "runner/utils/usage.py"
-  ]
+  ],
+  "studio_agent_id": "agent_51d240d4a7b04f059f6472925fb83e89"
 }
