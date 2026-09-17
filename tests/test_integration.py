@@ -131,6 +131,16 @@ class Integration(unittest.IsolatedAsyncioTestCase):
                         print(Path(d, "agent_run.log").read_text()[-10000:])
                     raise
                 native = json.loads(Path(d, "trajectory.native.json").read_text())
+                expected_config = json.loads(
+                    (ROOT / "apex_loop_truncated_tools_agent/manifest.json").read_text()
+                )["agent"]
+                expected_config["agent_config_values"].update(
+                    max_steps=max_steps, timeout=15
+                )
+                self.assertEqual(
+                    json.loads(Path(d, "agent_config.json").read_text()),
+                    expected_config,
+                )
                 self.assertEqual(native["status"], "completed")
                 self.assertEqual(result.stop_reason, "end_turn")
                 self.assertGreater(result.usage.total_tokens, 0)

@@ -251,16 +251,16 @@ class ApexAgent(Agent):
             {"role": "user", "content": "\n".join(p.text for p in prompt)},
         ]
         config = json.loads((UPSTREAM / "manifest.json").read_text())["agent"]
-        config["agent_config_values"].update(
-            {
-                "max_steps": positive_env("MAX_STEPS", 100),
-                "timeout": positive_env("AGENT_TIMEOUT_SEC", 10800),
-                "max_output_chars": positive_env("MAX_OUTPUT_CHARS", 32768),
-                "max_output_lines": positive_env("MAX_OUTPUT_LINES", 200),
-                "tool_call_timeout": positive_env("TOOL_CALL_TIMEOUT", 60),
-                "llm_response_timeout": positive_env("LLM_RESPONSE_TIMEOUT", 600),
-            }
-        )
+        values = config["agent_config_values"]
+        for key, env_name in (
+            ("max_steps", "MAX_STEPS"),
+            ("timeout", "AGENT_TIMEOUT_SEC"),
+            ("max_output_chars", "MAX_OUTPUT_CHARS"),
+            ("max_output_lines", "MAX_OUTPUT_LINES"),
+            ("tool_call_timeout", "TOOL_CALL_TIMEOUT"),
+            ("llm_response_timeout", "LLM_RESPONSE_TIMEOUT"),
+        ):
+            values[key] = positive_env(env_name, values[key])
         messages_path = logs / "messages.json"
         config_path = logs / "agent_config.json"
         native_path = logs / "trajectory.native.json"
@@ -269,8 +269,7 @@ class ApexAgent(Agent):
         native_path.unlink(missing_ok=True)
         command = [
             sys.executable,
-            "-m",
-            "apex_acp.runner",
+            str(UPSTREAM / "runner_src" / "runner_cli.py"),
             "--trajectory-id",
             session_id,
             "--initial-messages",

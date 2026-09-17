@@ -36,14 +36,15 @@ grading configuration for those steps.
 
 ## Behavior and limits
 
-The adapter invokes the existing `runner_cli` in a subprocess. Its optional root
-project supports Python 3.12 and 3.13; the Harbor manifest selects 3.12 because
+The adapter invokes the existing `runner_cli.py` directly in a subprocess. Its
+optional root project supports Python 3.12 and 3.13; the Harbor manifest selects 3.12 because
 that is the runtime currently accepted by Harbor's public manifest schema. The
 reference runner's own Python 3.13 project is unchanged.
 
 The root lockfile preserves the reference runner's dependency versions and adds
 `agent-client-protocol==0.8.1`. It reads the system prompt from the reference
-agent module and defaults from its manifest; the runner source is unchanged.
+agent module and defaults from its manifest, applying only the environment
+overrides below; the runner source is unchanged.
 
 The supported environment overrides match the reference agent:
 
