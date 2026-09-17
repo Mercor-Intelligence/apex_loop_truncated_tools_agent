@@ -15,7 +15,8 @@ from acp import PROTOCOL_VERSION, RequestError, spawn_agent_process, text_block
 from acp.interfaces import Client
 from acp.schema import HttpMcpServer
 
-ROOT = Path(__file__).resolve().parents[1]
+PROJECT = Path(__file__).resolve().parents[1]
+ROOT = PROJECT.parents[1]
 
 
 def port():
@@ -41,7 +42,7 @@ class Integration(unittest.IsolatedAsyncioTestCase):
         cls.services = subprocess.Popen(
             [
                 sys.executable,
-                str(ROOT / "tests/fake_services.py"),
+                str(PROJECT / "tests/fake_services.py"),
                 "--mcp-port",
                 str(cls.mcp_port),
                 "--model-port",
@@ -88,7 +89,7 @@ class Integration(unittest.IsolatedAsyncioTestCase):
                 env["OPENAI_API_BASE"] = f"http://127.0.0.1:{self.model_port}/v1"
                 env["OPENAI_BASE_URL"] = env["OPENAI_API_BASE"]
             async with spawn_agent_process(
-                collector, sys.executable, "-m", "apex_acp", env=env, cwd=ROOT
+                collector, sys.executable, "-m", "apex_acp", env=env, cwd=PROJECT
             ) as (conn, proc):
                 init = await conn.initialize(protocol_version=PROTOCOL_VERSION)
                 self.assertTrue(init.agent_capabilities.mcp_capabilities.http)

@@ -6,7 +6,7 @@
   "runtime": {
     "kind": "python-uv",
     "python": "3.12",
-    "project": ".",
+    "project": "integrations/acp",
     "lockfile": "uv.lock",
     "entrypoint": [
       "python",

@@ -99,7 +99,7 @@ Replace the model with any LiteLLM-compatible `provider/model`.
 ### Optional ACP adapter
 
 For clients that launch agents through the Agent Client Protocol (ACP), see
-[the ACP adapter instructions](docs/acp.md). The adapter calls the same reference
+[the ACP adapter instructions](integrations/acp/README.md). The adapter calls the same reference
 runner and keeps its system prompt and tool-loop defaults. The existing Harbor
 commands above continue to work without installing ACP.
 

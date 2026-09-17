@@ -10,8 +10,8 @@ the entry point for clients that support Harbor agent manifests. The existing
 From the repository root:
 
 ```sh
-uv sync --frozen --python 3.12
-uv run --frozen python -m apex_acp
+uv sync --directory integrations/acp --frozen --python 3.12
+uv run --directory integrations/acp --frozen python -m apex_acp
 ```
 
 The second command starts an ACP server, not an interactive chat. Configure an
@@ -37,11 +37,11 @@ grading configuration for those steps.
 ## Behavior and limits
 
 The adapter invokes the existing `runner_cli.py` directly in a subprocess. Its
-optional root project supports Python 3.12 and 3.13; the Harbor manifest selects 3.12 because
-that is the runtime currently accepted by Harbor's public manifest schema. The
+separate project in `integrations/acp/` supports Python 3.12 and 3.13. The Harbor
+manifest selects 3.12, as required by Harbor's public manifest schema. The
 reference runner's own Python 3.13 project is unchanged.
 
-The root lockfile preserves the reference runner's dependency versions and adds
+The adapter lockfile preserves the reference runner's dependency versions and adds
 `agent-client-protocol==0.8.1`. It reads the system prompt from the reference
 agent module and defaults from its manifest, applying only the environment
 overrides below; the runner source is unchanged.
@@ -77,7 +77,7 @@ for converting ACP events to their desired trajectory format.
 ## Test locally
 
 ```sh
-uv run --frozen python -m unittest discover -s tests -v
+uv run --directory integrations/acp --frozen python -m unittest discover -s tests -v
 ```
 
 The tests use the real ACP transport and reference runner against local mock
