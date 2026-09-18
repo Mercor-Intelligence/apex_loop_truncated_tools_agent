@@ -8,7 +8,7 @@ dependencies = [
   "litellm==1.97.0",
   "loguru>=0.7.3",
   "packaging>=24.0",
-  "pillow==12.2.0",
+  "pillow==12.3.0",
   "pydantic-settings>=2.11.0",
 ]
 
