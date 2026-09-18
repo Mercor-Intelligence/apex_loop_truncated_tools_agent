@@ -218,6 +218,9 @@ class ApexLoopTruncatedToolsAgent(BaseAgent):
             else "loop_truncated_tools_agent"
         )
         self._agent_name = self._agent_config_id.replace("_", " ").title()
+        # Recorded by run() for populate_context_post_run.
+        self._run_tail = ""
+        self._return_code: int | None = None
 
     async def setup(self, environment: BaseEnvironment) -> None:
         # The world boots itself (compose sidecar, POST-healthcheck-gated) —
@@ -327,10 +330,12 @@ exit $rc
                                      timeout_sec=self._agent_timeout + 900)
         tail = "\n".join(p for p in (res.stdout, res.stderr) if p)[-2000:]
         self.logger.info(f"[apex-agent] run tail:\n{tail}")
-        context.metadata = {"tail": tail, "return_code": res.return_code}
-        # Preserve whatever trajectory exists before surfacing the failure —
-        # a crashed runner must error the trial, not grade as empty work.
-        self._write_atif_trajectory()
+        # The trajectory is converted and the context filled in
+        # populate_context_post_run: harbor calls it once /logs/agent is on the
+        # host, after a successful and after a failed run alike, but only while
+        # the context is still empty — so nothing is written to it here.
+        self._run_tail = tail
+        self._return_code = res.return_code
         if res.return_code != 0:
             raise RuntimeError(
                 f"APEX runner exited {res.return_code}"
@@ -338,12 +343,21 @@ exit $rc
             )
 
     def populate_context_post_run(self, context: AgentContext) -> None:
-        # native is authoritative; the in-run pass may have written an empty
-        # placeholder before /logs synced. Re-convert once native is readable.
-        if (self.logs_dir / "trajectory.native.json").exists():
-            self._write_atif_trajectory()
+        """Convert the synced native trajectory to ATIF and fill the context.
 
-    def _write_atif_trajectory(self) -> None:
+        harbor invokes this after /logs/agent has been synced to the host (a
+        no-op when the environment bind-mounts it, a download otherwise), on
+        success and after a failed run, so a crashed runner still errors the
+        trial with whatever trajectory it produced preserved.
+        """
+        atif = self._write_atif_trajectory()
+        context.metadata = {"tail": self._run_tail, "return_code": self._return_code}
+        metrics = atif.get("final_metrics") or {}
+        context.n_input_tokens = metrics.get("total_prompt_tokens")
+        context.n_output_tokens = metrics.get("total_completion_tokens")
+        context.n_cache_tokens = metrics.get("total_cached_tokens")
+
+    def _write_atif_trajectory(self) -> dict:
         """Convert the runner's native trajectory to ATIF at the standard
         path; an absent or unparseable native file yields an empty-steps
         ATIF so grading judges the absence of work instead of erroring."""
@@ -358,3 +372,4 @@ exit $rc
             native = {"messages": []}
         atif = convert_trajectory(native)
         (self.logs_dir / "trajectory.json").write_text(json.dumps(atif, indent=2))
+        return atif
