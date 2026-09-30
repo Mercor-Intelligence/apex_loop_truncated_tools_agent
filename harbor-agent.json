@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "apex-agents-1-1",
+  "version": "0.1.0",
+  "protocol": "acp",
+  "runtime": {
+    "kind": "python-uv",
+    "python": "3.12",
+    "project": "integrations/acp",
+    "lockfile": "uv.lock",
+    "entrypoint": [
+      "python",
+      "-m",
+      "apex_acp"
+    ]
+  }
+}
