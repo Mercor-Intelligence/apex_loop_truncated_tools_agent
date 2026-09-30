@@ -26,12 +26,17 @@ from harbor.agents.base import BaseAgent
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
+try:
+    from harbor.agents.capabilities import AgentCapabilities
+except ImportError:  # harbor < 0.23
+    AgentCapabilities = None
+
 _RUNNER_DIR = "/agent_runner"
 _LOG = "/logs/agent"
 
 # Canonical system prompt recorded for this benchmark harness.
 _AGENT_SYSTEM_PROMPTS = {
-    "loop_truncated_tools_agent": "You are an agent that completes tasks independently. Use the tools and files provided to you to complete the task to the best of your ability. You should use the code_exec tool when needed, such as when calculating values. When calculating numbers, unless specified otherwise, use the exact values without rounding them.\n\nYou must attempt to execute the task. You cannot ask for help or further clarification. \n\nYou should not scattergun your answers. Scattergunning is when you provide alternate answers based on information that is not explicitly requested in the task prompt. If you do this, it will be marked wrong. Please note, providing answers to legitimately different cases that are explicitly requested by the prompt is NOT scattergunning. Please respond to all parts of the task, but commit to answers instead of hedging.\n\nYou do not have access to the internet. Do not try to look up the answer through requests, beautifulsoup, or any other packages.\n\nFor every tool except the code_exec tool, you may assume that all relevant files are located under the root path /. For the code_exec tool, however, you must explicitly use /filesystem/ as the root path to locate all relevant files.",
+    "loop_truncated_tools_agent": "You are an agent that completes tasks independently. Use the tools provided to you to complete the task to the best of your ability. You should use the code_exec tool when needed, such as when calculating values. When calculating numbers, unless specified otherwise, use the exact values without rounding them.\n\nYou must attempt to execute the task. You cannot ask for help or further clarification. You may wish to look at files for contextual information to help solve the tasks. This includes communication channels.\n\nYou should not scattergun your answers. Scattergunning is when you provide alternate answers based on information that is not explicitly requested in the task prompt. If you do this, it will be marked wrong. Please note, providing answers to legitimately different cases that are explicitly requested by the prompt is NOT scattergunning. Respond to all parts of the task, but commit to answers instead of hedging.\n\nYou do not have access to the internet. Do not try to look up the answer through requests, beautifulsoup, or any other packages. For every tool except the code_exec tool, you may assume that all relevant files are located under the root path /. For the code_exec tool, however, you must explicitly use /filesystem/ as the root path to locate all relevant files.",
 }
 
 
@@ -182,12 +187,17 @@ def convert_trajectory(traj: dict) -> dict:
 
 
 class ApexLoopTruncatedToolsAgent(BaseAgent):
+    # Newer harbor rejects MCP tasks unless the agent declares the capability;
+    # older versions have no such field and forbid unknown ones.
+    if AgentCapabilities is not None and "mcp_servers" in AgentCapabilities.model_fields:
+        capabilities = AgentCapabilities(mcp_servers=True)
+
     @staticmethod
     def name() -> str:
         return "apex_loop_truncated_tools_agent"
 
     def version(self) -> str:
-        return "1.0"
+        return "1.1"
 
     def __init__(self, logs_dir, model_name=None, logger=None, mcp_servers=None,
                  skills_dir=None, *, runner_src: str | None = None,
@@ -330,12 +340,52 @@ exit $rc
         context.metadata = {"tail": tail, "return_code": res.return_code}
         # Preserve whatever trajectory exists before surfacing the failure —
         # a crashed runner must error the trial, not grade as empty work.
-        self._write_atif_trajectory()
+        await self._sync_atif_trajectory(environment)
         if res.return_code != 0:
             raise RuntimeError(
                 f"APEX runner exited {res.return_code}"
                 f" (see {_LOG}/agent_run.log); tail:\n{tail}"
             )
+        # The runner exits 0 on its own crashes; a crashed run must error the
+        # trial, not grade as 0.0. "failed" (step limit reached) is still graded.
+        status = self._native_status()
+        if status in (None, "error", "cancelled"):
+            raise RuntimeError(
+                f"APEX runner ended with status {status!r}"
+                f" (see {_LOG}/agent_run.log); tail:\n{tail}"
+            )
+
+    async def _sync_atif_trajectory(self, environment: BaseEnvironment) -> None:
+        """Write the ATIF where the verifier's artifact is collected from.
+
+        Non-mounted environments (e.g. Modal) sync /logs to the host only after
+        run(), and harbor skips populate_context_post_run once run() has set
+        context metadata, so the native file is pulled from the container and
+        the ATIF pushed back into it.
+        """
+        mounted = environment.capabilities.mounted
+        if not mounted:
+            try:
+                await environment.download_file(
+                    f"{_LOG}/trajectory.native.json",
+                    self.logs_dir / "trajectory.native.json",
+                )
+            except Exception as e:
+                self.logger.warning(
+                    f"[apex-agent] could not fetch native trajectory: {e!r}"
+                )
+        self._write_atif_trajectory()
+        if not mounted:
+            await environment.upload_file(
+                self.logs_dir / "trajectory.json", f"{_LOG}/trajectory.json"
+            )
+
+    def _native_status(self) -> str | None:
+        try:
+            native = json.loads((self.logs_dir / "trajectory.native.json").read_text())
+        except Exception:
+            return None
+        return native.get("status")
 
     def populate_context_post_run(self, context: AgentContext) -> None:
         # native is authoritative; the in-run pass may have written an empty

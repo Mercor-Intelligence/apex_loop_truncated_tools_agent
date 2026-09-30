@@ -22,6 +22,8 @@ from litellm.types.utils import Message
 from loguru import logger
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
+import runner.utils.reasoning_effort_patch  # noqa: F401
+import runner.utils.responses_bridge_patch  # noqa: F401
 from runner.agents.models import LitellmAnyMessage
 from runner.utils.decorators import (
     campaign_id_ctx,
@@ -702,6 +704,11 @@ async def generate_response(
     top_level_extra, extra_body = _split_extra_args(
         responses_args_to_completions(extra_args)
     )
+    # LiteLLM rewrites OpenRouter's "max" effort to "xhigh"; its native field is sent as-is.
+    if model.startswith("openrouter/") and isinstance(
+        top_level_extra.get("reasoning_effort"), str
+    ):
+        top_level_extra["reasoning"] = {"effort": top_level_extra.pop("reasoning_effort")}
     if model.startswith("anthropic/"):
         messages = apply_anthropic_image_policy(messages, tools, model=model)
         # A trailing empty assistant "prefill" turn (authored content == "")
