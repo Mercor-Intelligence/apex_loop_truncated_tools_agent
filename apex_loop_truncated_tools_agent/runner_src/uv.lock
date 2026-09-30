@@ -116,7 +116,7 @@ wheels = [
 
 [[package]]
 name = "apex-agents-1-1-runner"
-version = "1.0.1"
+version = "1.1"
 source = { virtual = "." }
 dependencies = [
     { name = "fastmcp" },
