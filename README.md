@@ -33,6 +33,12 @@ cd apex_loop_truncated_tools_agent
 cp .env.example .env
 ```
 
+To reproduce the leaderboard's model settings, set `APEX_MODEL_EXTRA_ARGS` in `.env`. It is a JSON object of extra LiteLLM arguments sent with every model call. When it is unset, the model runs with provider defaults (for Claude, without extended thinking). The leaderboard's Claude Opus 5.5 run used:
+
+```bash
+APEX_MODEL_EXTRA_ARGS='{"output_config": {"effort": "max"}, "thinking": {"type": "adaptive", "display": "summarized"}, "max_tokens": 128000}'
+```
+
 ### Harbor Hub
 
 Run a task:

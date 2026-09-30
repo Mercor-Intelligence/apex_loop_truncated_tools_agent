@@ -28,6 +28,7 @@ from runner.agents.models import (
 from runner.utils.error import is_fatal_mcp_error, is_system_error
 from runner.utils.llm import generate_response
 from runner.utils.mcp import (
+    acquire_mcp_session,
     build_mcp_gateway_schema,
     content_blocks_to_messages,
     drain_shielded_task,
@@ -128,7 +129,7 @@ class LoopTruncatedToolsAgent:
 
     async def _initialize_tools(self) -> None:
         """Load available tools from the MCP gateway."""
-        async with self.mcp_client as client:
+        async with acquire_mcp_session(self.mcp_client) as client:
             tools: list[ChatCompletionToolParam] = await load_mcp_tools(
                 client.session, format="openai"
             )  # pyright: ignore[reportAssignmentType]
@@ -230,7 +231,7 @@ class LoopTruncatedToolsAgent:
             pre_tool_len = len(self.messages)
             fatal_exc: Exception | None = None
             deferred_image_messages: list[LitellmInputMessage] = []
-            async with self.mcp_client as client:
+            async with acquire_mcp_session(self.mcp_client) as client:
                 for tool_call in tool_calls:
                     name = tool_call.function.name
 

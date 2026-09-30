@@ -18,6 +18,31 @@ from runner.utils.image_fetch import (
 )
 
 
+# The MCP/HTTP client raises a bare `RuntimeError` when the connection to the
+# environment sandbox drops mid-run — the sandbox exited or was terminated
+# under a live agent. There is no typed exception to match on (the message is
+# all we get), and the generic `RuntimeError` branch below would otherwise read
+# these as deterministic model failures: FAILED, no retry, blamed on the model.
+# Kept to strings actually observed on this failure, not every disconnect
+# phrase httpx can emit: each entry widens what becomes retryable for EVERY
+# agent using this classifier, so speculative additions are how a deterministic
+# model failure quietly starts costing a second run.
+_TRANSPORT_DISCONNECT_MARKERS = (
+    # Observed 778x in 72h when the sandbox died under a live agent.
+    "server disconnected without sending a response",
+    "client failed to connect",
+    # The MCP session is dead. `is_fatal_mcp_error` already ends the run on
+    # this; classifying it here decides whether the run is blamed on the model.
+    "client is not connected",
+)
+
+
+def _is_transport_disconnect(message: str) -> bool:
+    """True when a bare RuntimeError is really the environment going away."""
+    low = message.lower()
+    return any(marker in low for marker in _TRANSPORT_DISCONNECT_MARKERS)
+
+
 def is_system_error(exception: Exception) -> bool:
     """Determine if an exception represents a system error (retryable) vs model error.
 
@@ -45,12 +70,18 @@ def is_system_error(exception: Exception) -> bool:
         error_str = str(exception).lower()
         if "exceeded your current quota" in error_str:
             return True  # System error
+        # Vertex refused to fetch an oversized image_url. Deterministic, so it is
+        # a model error. Checked ahead of the "context" test below, which matches
+        # this message only by accident (a C++ path in Vertex's error). RLS-10563.
+        if "max_bytes_fetched" in error_str:
+            return False  # Model error
         # If it's context/token/multimodal related, it's a model error
         if (
             "context" in error_str
             or "token" in error_str
             or "is not a multimodal model" in error_str
             or "does not support multimodal" in error_str
+            or "does not support file content blocks" in error_str
         ):
             return False  # Model error
         # Anthropic request validation (deterministic)
@@ -61,6 +92,35 @@ def is_system_error(exception: Exception) -> bool:
             or "2000 pixels" in error_str
             or "exceeds 5 mb" in error_str
             or "5242880" in error_str
+            # Provider rejects an oversized asset/attachment (deterministic;
+            # e.g. "Asset is too large: 2298798 bytes, max allowed is 2097152")
+            or "asset is too large" in error_str
+        ):
+            return False  # Model error
+        # Content-moderation / policy refusals. The provider's safety filter
+        # rejected the prompt (or generated content); the identical request is
+        # refused on every retry (litellm ContentPolicyViolationError is a
+        # BadRequestError subclass, and also arrives wrapped as a 400 carrying
+        # these strings). A genuine model failure, not a retryable system error.
+        if (
+            "content management policy" in error_str
+            or "content policy" in error_str
+            or "content_filter" in error_str
+            or "the response was filtered" in error_str
+            or "contentpolicyviolation" in error_str
+            or "responsible ai" in error_str
+            or "flagged for possible cybersecurity risk" in error_str
+            or "trusted access program" in error_str
+        ):
+            return False  # Model error
+        # OpenAI-family image payload rejections (deterministic): a single image
+        # exceeds the decode-size limit, or the request carries too many images
+        # ("request contains N images, exceeding the maximum of 50 allowed").
+        # The "images," prefix keeps this off transient "maximum of N requests"
+        # and matches the retry skip-list in llm._is_non_retriable_bad_request.
+        if (
+            "image decode limit exceeded" in error_str
+            or "images, exceeding the maximum of" in error_str
         ):
             return False  # Model error
         return True  # System error (configuration/infrastructure issue)
@@ -73,9 +133,12 @@ def is_system_error(exception: Exception) -> bool:
     if isinstance(exception, ValueError):
         return False
 
-    # RuntimeError (e.g. SSE error events) — non-retryable
+    # RuntimeError (e.g. SSE error events) — non-retryable, EXCEPT when it is
+    # the MCP client reporting that the environment vanished underneath it.
+    # That is an infrastructure failure the agent had no part in, and calling
+    # it a model error both blames the model and skips the retry.
     if isinstance(exception, RuntimeError):
-        return False
+        return _is_transport_disconnect(str(exception))
 
     # Image fetch failures are deterministic input/contract problems
     # (oversize, unsupported scheme, bad URL, 4xx). Retrying won't fix them.
@@ -169,7 +232,7 @@ def is_fatal_mcp_error(exception: Exception) -> bool:
     if isinstance(exception, RuntimeError):
         error_str = str(exception)
         # FastMCP raises this when the client session has been closed/corrupted
-        if "Client is not connected" in error_str:
+        if _is_transport_disconnect(error_str):
             return True
 
     return False

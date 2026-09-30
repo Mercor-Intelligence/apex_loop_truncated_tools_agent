@@ -1,8 +1,15 @@
 """MCP client helpers for agents using LiteLLM."""
 
 import asyncio
+import ssl
+import time
+from collections.abc import AsyncIterator
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any
 
+import httpx
+from fastmcp import Client as FastMCPClient
+from fastmcp.client.transports import ClientTransport
 from loguru import logger
 from mcp.types import ContentBlock, ImageContent, TextContent
 
@@ -73,6 +80,175 @@ def build_mcp_gateway_schema(
             "gateway": gateway_config,
         }
     }
+
+
+MCP_SESSION_ACQUISITION_TIMEOUT_SECONDS = 30.0
+MCP_SESSION_ACQUISITION_MAX_ATTEMPTS = 3
+
+
+def _mcp_acquisition_cause(exception: BaseException) -> BaseException:
+    while isinstance(exception, RuntimeError) and (
+        str(exception).startswith("Client failed to connect: ")
+        or str(exception) == "Failed to initialize server session"
+    ):
+        if exception.__cause__ is None:
+            break
+        exception = exception.__cause__
+    return exception
+
+
+def _is_transient_mcp_acquisition_error(exception: BaseException) -> bool:
+    exception = _mcp_acquisition_cause(exception)
+    if isinstance(exception, BaseExceptionGroup):
+        return all(_is_transient_mcp_acquisition_error(e) for e in exception.exceptions)
+    if isinstance(exception, httpx.HTTPStatusError):
+        return exception.response.status_code in (408, 429, 500, 502, 503, 504)
+    if isinstance(exception, httpx.ConnectError) and (
+        "[ssl:" in str(exception).lower()
+        or "certificate verify failed" in str(exception).lower()
+    ):
+        return False
+    cause = exception
+    while cause is not None:
+        if isinstance(cause, ssl.SSLError):
+            return False
+        cause = cause.__cause__
+    return isinstance(
+        exception,
+        (TimeoutError, ConnectionError, httpx.NetworkError, httpx.TimeoutException),
+    )
+
+
+def _mcp_acquisition_error_details(exception: BaseException | None) -> dict[str, Any]:
+    nodes: list[dict[str, Any]] = []
+    pending: list[tuple[BaseException, int | None, str]] = (
+        [(exception, None, "root")] if exception is not None else []
+    )
+    seen: set[int] = set()
+    truncated = False
+    while pending and len(nodes) < 16:
+        current, parent, relation = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        index = len(nodes)
+        node: dict[str, Any] = {
+            "type": type(current).__name__[:128],
+            "module": type(current).__module__[:128],
+            "parent": parent,
+            "relation": relation,
+        }
+        if isinstance(current, httpx.HTTPStatusError):
+            node["http_status"] = current.response.status_code
+        nodes.append(node)
+        if isinstance(current, BaseExceptionGroup):
+            truncated |= len(current.exceptions) > 16
+            pending.extend(
+                (child, index, "group") for child in reversed(current.exceptions[:16])
+            )
+        if current.__context__ is not None:
+            pending.append((current.__context__, index, "context"))
+        if current.__cause__ is not None:
+            pending.append((current.__cause__, index, "cause"))
+    return {
+        "error_chain": nodes,
+        "error_chain_truncated": truncated or bool(pending),
+    }
+
+
+def _log_mcp_acquisition(
+    outcome: str,
+    attempt: int,
+    started_at: float,
+    attempt_started_at: float,
+    exception: BaseException | None = None,
+    *,
+    retry_delay_seconds: float = 0.0,
+    error_type: str | None = None,
+) -> None:
+    try:
+        now = time.monotonic()
+        logger.bind(
+            message_type="mcp_session",
+            outcome=outcome,
+            attempt=attempt,
+            elapsed_seconds=now - started_at,
+            attempt_elapsed_seconds=now - attempt_started_at,
+            retry_delay_seconds=retry_delay_seconds,
+            error_type=error_type[:128] if error_type else None,
+            **_mcp_acquisition_error_details(exception),
+        ).log(
+            "INFO" if outcome in ("recovered", "cancelled") else "WARNING",
+            "Transient MCP session acquisition failure; retrying"
+            if outcome == "retrying"
+            else f"MCP session acquisition {outcome}",
+        )
+    except Exception:
+        pass
+
+
+@asynccontextmanager
+async def acquire_mcp_session[T: ClientTransport](
+    client: FastMCPClient[T],
+) -> AsyncIterator[FastMCPClient[T]]:
+    async with AsyncExitStack() as stack:
+        deadline = asyncio.timeout(MCP_SESSION_ACQUISITION_TIMEOUT_SECONDS)
+        started_at = attempt_started_at = time.monotonic()
+        attempt = 0
+        try:
+            async with deadline:
+                while True:
+                    attempt_started_at = time.monotonic()
+                    try:
+                        connected = await stack.enter_async_context(client)
+                    except Exception as exc:
+                        cause = _mcp_acquisition_cause(exc)
+                        if isinstance(cause.__context__, BaseExceptionGroup):
+                            cause = cause.__context__
+                        exhausted = attempt + 1 >= MCP_SESSION_ACQUISITION_MAX_ATTEMPTS
+                        if exhausted or not _is_transient_mcp_acquisition_error(cause):
+                            _log_mcp_acquisition(
+                                "attempt_limit" if exhausted else "not_retryable",
+                                attempt + 1,
+                                started_at,
+                                attempt_started_at,
+                                exc,
+                                error_type=type(cause).__name__,
+                            )
+                            raise
+                        delay = 0.5 * 2.0**attempt
+                        _log_mcp_acquisition(
+                            "retrying",
+                            attempt + 1,
+                            started_at,
+                            attempt_started_at,
+                            exc,
+                            retry_delay_seconds=delay,
+                            error_type=type(cause).__name__,
+                        )
+                        await asyncio.sleep(delay)
+                        attempt += 1
+                    else:
+                        break
+        except TimeoutError as exc:
+            if not deadline.expired():
+                raise
+            _log_mcp_acquisition(
+                "deadline", attempt + 1, started_at, attempt_started_at, exc
+            )
+            raise ConnectionError(
+                f"MCP session acquisition timed out after {MCP_SESSION_ACQUISITION_TIMEOUT_SECONDS} seconds"
+            ) from exc
+        except asyncio.CancelledError as exc:
+            _log_mcp_acquisition(
+                "cancelled", attempt + 1, started_at, attempt_started_at, exc
+            )
+            raise
+        if attempt:
+            _log_mcp_acquisition(
+                "recovered", attempt + 1, started_at, attempt_started_at
+            )
+        yield connected
 
 
 def content_blocks_to_messages(
