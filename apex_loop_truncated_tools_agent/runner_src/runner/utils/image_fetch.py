@@ -30,6 +30,9 @@ from PIL import Image
 from runner.agents.models import LitellmAnyMessage, get_msg_attr, get_msg_content
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
+# Anthropic hard-rejects any image with a dimension over 8000px, regardless
+# of how few images the request holds.
+MAX_ANTHROPIC_IMAGE_DIMENSION = 8000
 MAX_ANTHROPIC_MANY_IMAGE_DIMENSION = 2000
 MAX_ANTHROPIC_REQUEST_BYTES = 32 * 1024 * 1024
 MAX_ANTHROPIC_IMAGES_PER_REQUEST = 600
@@ -222,12 +225,14 @@ def normalize_mcp_image_for_anthropic(
     except Exception:
         return data_b64, mime_type
 
+    max_dim = (
+        MAX_ANTHROPIC_MANY_IMAGE_DIMENSION
+        if downscale
+        else MAX_ANTHROPIC_IMAGE_DIMENSION
+    )
     changed = False
-    if downscale and max(img.size) > MAX_ANTHROPIC_MANY_IMAGE_DIMENSION:
-        img.thumbnail(
-            (MAX_ANTHROPIC_MANY_IMAGE_DIMENSION, MAX_ANTHROPIC_MANY_IMAGE_DIMENSION),
-            Image.Resampling.LANCZOS,
-        )
+    if max(img.size) > max_dim:
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
         changed = True
 
     if len(data_b64) <= limit and not changed:
