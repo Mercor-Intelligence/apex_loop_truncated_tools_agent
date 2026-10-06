@@ -47,8 +47,8 @@ Run a task:
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -d mercor/apex-agents-1-1@1.1 \
-  -i 128-jr-1-f7f95d92 \
+  -d mercor/apex-agents-1-1@1.1.1 \
+  -i mercor/128-jr-1-f7f95d92 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
 ```
@@ -59,7 +59,7 @@ Run the benchmark:
 PYTHONPATH="$PWD/apex_loop_truncated_tools_agent" \
 harbor run \
   --env-file .env \
-  -d mercor/apex-agents-1-1@1.1 \
+  -d mercor/apex-agents-1-1@1.1.1 \
   -a apex_loop_truncated_tools_agent:ApexLoopTruncatedToolsAgent \
   -m anthropic/claude-opus-5
 ```
@@ -72,6 +72,7 @@ images:
 ```bash
 hf download mercor/apex-agents-v1.1 \
   --repo-type dataset \
+  --revision 1.1.1 \
   --local-dir apex-agents-v1.1
 
 bash apex-agents-v1.1/environment/load_images.sh
