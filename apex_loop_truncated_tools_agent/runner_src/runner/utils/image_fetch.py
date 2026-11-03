@@ -37,6 +37,15 @@ MAX_ANTHROPIC_MANY_IMAGE_DIMENSION = 2000
 MAX_ANTHROPIC_REQUEST_BYTES = 32 * 1024 * 1024
 MAX_ANTHROPIC_IMAGES_PER_REQUEST = 600
 MIN_ANTHROPIC_IMAGES_FOR_DOWNSCALE = 20
+# PIL format name -> the media type Anthropic expects for that payload.
+# MPO is how PIL reports multi-picture JPEGs (common from phone cameras).
+_ANTHROPIC_MIME_BY_PIL_FORMAT = {
+    "PNG": "image/png",
+    "JPEG": "image/jpeg",
+    "MPO": "image/jpeg",
+    "GIF": "image/gif",
+    "WEBP": "image/webp",
+}
 # Rough JSON wrapper size for an image_url block excluding the base64 payload.
 _IMAGE_URL_BLOCK_OVERHEAD_BYTES = 80
 FETCH_TIMEOUT_SECONDS = 30.0
@@ -224,6 +233,14 @@ def normalize_mcp_image_for_anthropic(
         img.load()
     except Exception:
         return data_b64, mime_type
+
+    # Anthropic rejects an image whose declared media type does not match its
+    # bytes ("specified using the image/png media type, but the image appears
+    # to be a image/jpeg image"). MCP servers often derive the type from the
+    # file extension, so trust the decoded format when it is one we know.
+    actual_mime = _ANTHROPIC_MIME_BY_PIL_FORMAT.get(img.format or "")
+    if actual_mime is not None:
+        mime_type = actual_mime
 
     max_dim = (
         MAX_ANTHROPIC_MANY_IMAGE_DIMENSION
